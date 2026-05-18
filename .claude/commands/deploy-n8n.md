@@ -4,7 +4,7 @@ description: Deploy and activate an n8n workflow to an n8n server
 
 Deploy a workflow JSON file to n8n via the REST API, then activate it.
 
-The API key is loaded automatically from `orchestrator/n8n/.env` (one level up from the bot directory).
+The API key is loaded automatically from `orchestrator/n8n/.env`.
 
 **Required argument:** `--url <n8n-server-url>`
 **Select workflow (pick one):**
@@ -23,7 +23,7 @@ Arguments passed by user: `$ARGUMENTS`
 
 2. Run the deploy script from the project root:
    ```bash
-   node ../orchestrator/n8n/deploy.js $ARGUMENTS
+   node orchestrator/n8n/deploy.js $ARGUMENTS
    ```
 
 3. Report back:

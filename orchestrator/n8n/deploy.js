@@ -17,13 +17,44 @@ const getArg = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[
 
 const n8nUrl = (getArg('--url') || process.env.N8N_URL || 'http://localhost:5678').replace(/\/$/, '');
 const apiKey  = getArg('--key') || process.env.N8N_API_KEY;
-const file    = getArg('--file') || path.join(__dirname, 'presale-agent-workflow.json');
+
+// Resolve workflow file: --file <path> | --name <workflow-name> | default
+function resolveFile() {
+  const filePath = getArg('--file');
+  if (filePath) return path.resolve(filePath);
+
+  const name = getArg('--name');
+  if (name) {
+    const dir = __dirname;
+    const candidates = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
+    for (const candidate of candidates) {
+      const full = path.join(dir, candidate);
+      try {
+        const wf = JSON.parse(fs.readFileSync(full, 'utf8'));
+        if (wf.name && wf.name.toLowerCase() === name.toLowerCase()) return full;
+      } catch { /* skip invalid JSON */ }
+    }
+    console.error(`Error: no workflow JSON found with name "${name}" in ${dir}`);
+    console.error(`Available workflows:`);
+    candidates.forEach(f => {
+      try {
+        const wf = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+        console.error(`  ${wf.name}  (${f})`);
+      } catch { /* skip */ }
+    });
+    process.exit(1);
+  }
+
+  return path.join(__dirname, 'presale-agent-workflow.json');
+}
+
+const file = resolveFile();
 
 if (!apiKey) {
   console.error('Error: n8n API key is required.');
   console.error('  Option 1: node deploy.js --key <key>');
-  console.error('  Option 2: set N8N_API_KEY env var');
-  console.error('  Get key:  n8n UI → Settings (bottom-left) → n8n API → Enable → Create API Key');
+  console.error('  Option 2: set N8N_API_KEY in orchestrator/n8n/.env');
+  console.error('  Get key:  n8n UI → Settings → n8n API → Create API Key');
   process.exit(1);
 }
 
@@ -38,6 +69,7 @@ const base = `${n8nUrl}/api/v1`;
 async function deploy() {
   const workflow = JSON.parse(fs.readFileSync(file, 'utf8'));
   console.log(`Deploying: "${workflow.name}"`);
+  console.log(`File:      ${file}`);
   console.log(`Target:    ${n8nUrl}`);
 
   const listRes = await fetch(`${base}/workflows?limit=100`, { headers });
@@ -73,8 +105,10 @@ async function deploy() {
   });
   if (!activateRes.ok) throw new Error(`Activate failed: ${activateRes.status} ${await activateRes.text()}`);
 
+  const webhookNode = workflow.nodes?.find(n => n.type === 'n8n-nodes-base.webhook');
+  const webhookPath = webhookNode?.parameters?.path || '(see workflow)';
   console.log('Activated.');
-  console.log(`Webhook: ${n8nUrl}/webhook/presale-agent`);
+  console.log(`Webhook: ${n8nUrl}/webhook/${webhookPath}`);
 }
 
 deploy().catch(err => { console.error(`Deploy failed: ${err.message}`); process.exit(1); });
