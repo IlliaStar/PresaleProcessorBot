@@ -1,5 +1,5 @@
 .env
 node_modules/
 *.log
-ngrok.log
+devtunnel.log
 .n8n/

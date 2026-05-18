@@ -140,7 +140,7 @@ Presale engineers spend significant time manually analyzing RFP documents, refer
 |---|---|---|
 | Entry Point | Microsoft Teams Bot | User interface |
 | Orchestrator | n8n (local, Docker) | Workflow automation |
-| Tunnel | ngrok | Expose local n8n to Teams |
+| Tunnel | devtunnel (Microsoft) | Expose local bot to Teams |
 | LLM | Claude Sonnet 4.6 (Anthropic) | Reasoning, WBS generation |
 | Vector Search | Qdrant (local, Docker) | Semantic RAG over presale history |
 | File Storage | SharePoint Document Libraries | Input docs, historical presales, outputs |
@@ -360,8 +360,11 @@ services:
 # Start local stack
 docker-compose up -d
 
-# Expose to Teams via ngrok
-ngrok http 5678
+# Expose bot to Teams via devtunnel (one-time setup)
+devtunnel user login
+devtunnel create --allow-anonymous
+devtunnel port create <tunnel-id> -p 3978
+# Subsequent runs: devtunnel host --allow-anonymous -p 3978
 ```
 
 ### External Services Required (all free tier)
@@ -372,7 +375,7 @@ ngrok http 5678
 | Azure Bot Service F0 | Teams integration | Free |
 | Azure AD App Registration | OAuth for SharePoint | Free |
 | Anthropic API | Claude LLM | Pay per use |
-| ngrok | Tunnel for local dev | Free tier |
+| devtunnel | Tunnel for local dev (persistent URL) | Free (Microsoft) |
 
 ---
 
