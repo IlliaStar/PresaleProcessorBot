@@ -9,7 +9,7 @@
     "n8n": "set N8N_BLOCK_ENV_ACCESS_IN_NODE=false && n8n start",
     "tunnel": "devtunnel host tidy-river-mfkpvdl.euw",
     "start:dev": "start cmd /k \"title Presale Dev && npm run start:dev:inner\"",
-    "start:dev:inner": "concurrently --names \"n8n,bot,tunnel\" -c \"cyan,green,yellow\" \"npm run n8n\" \"npm run bot\" \"npm run tunnel\"",
+    "start:dev:inner": "concurrently --names \"n8n,bot,tunnel,n8nac\" -c \"cyan,green,yellow,magenta\" \"npm run n8n\" \"npm run bot\" \"npm run tunnel\" \"npx n8nac watch\"",
     "build:teams": "node teams-app/build-package.js"
   },
   "dependencies": {

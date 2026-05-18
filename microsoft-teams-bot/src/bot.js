@@ -1,10 +1,23 @@
-const { TeamsActivityHandler, MessageFactory, ActivityTypes } = require('botbuilder');
+const { TeamsActivityHandler, MessageFactory, ActivityTypes, TurnContext } = require('botbuilder');
 const { MicrosoftAppCredentials } = require('botframework-connector');
 const config = require('./config');
+const conversationStore = require('./conversationStore');
+
+function stripHtml(html) {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 class PresaleBot extends TeamsActivityHandler {
-  constructor() {
+  constructor(adapter) {
     super();
+    this.adapter = adapter;
 
     this.onMessage(async (context, next) => {
       await this._handleMessage(context);
@@ -28,7 +41,9 @@ class PresaleBot extends TeamsActivityHandler {
   }
 
   async _handleMessage(context) {
-    // Show typing indicator while waiting for n8n
+    const ref = TurnContext.getConversationReference(context.activity);
+    conversationStore.set(ref.conversation.id, { ref, typingTimer: null });
+
     await context.sendActivity({ type: ActivityTypes.Typing });
 
     const activity = context.activity;
@@ -42,17 +57,32 @@ class PresaleBot extends TeamsActivityHandler {
     );
 
     const payload = {
-      message: (activity.text || '').trim(),
+      message: stripHtml(activity.text || ''),
       conversationId: activity.conversation.id,
       userId: activity.from.id,
       userName: activity.from.name || 'User',
       channelId: activity.channelId,
       serviceUrl: activity.serviceUrl,
       attachments,
+      callbackUrl: config.proactiveCallbackUrl,
     };
 
-    const reply = await this._callN8n(payload);
-    await context.sendActivity(MessageFactory.text(reply));
+    await context.sendActivity({ type: ActivityTypes.Typing });
+    const entry = conversationStore.get(activity.conversation.id);
+    const typingTimer = setInterval(async () => {
+      const current = conversationStore.get(activity.conversation.id);
+      if (!current?.typingTimer) return;
+      try {
+        await this.adapter.continueConversation(ref, async (tc) => {
+          await tc.sendActivity({ type: ActivityTypes.Typing });
+        });
+      } catch (_) {}
+    }, 3000);
+    if (entry) entry.typingTimer = typingTimer;
+
+    this._callN8n(payload).catch((err) => {
+      console.error('[n8n fire-and-forget error]', err.message);
+    });
   }
 
   async _downloadAttachment(contentUrl) {
@@ -83,30 +113,14 @@ class PresaleBot extends TeamsActivityHandler {
 
   async _callN8n(payload) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), config.n8nTimeout);
-
+    const timer = setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch(config.n8nWebhookUrl, {
+      await fetch(config.n8nWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
-
-      if (!response.ok) {
-        return `n8n returned HTTP ${response.status}. Check your workflow configuration.`;
-      }
-
-      const data = await response.json();
-      return data.reply || data.message || JSON.stringify(data);
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        return 'The request timed out. The n8n workflow is taking too long to respond.';
-      }
-      if (err.cause?.code === 'ECONNREFUSED') {
-        return 'Cannot reach the n8n orchestrator. Make sure it is running (`n8n start`).';
-      }
-      return `Error contacting orchestrator: ${err.message}`;
     } finally {
       clearTimeout(timer);
     }

@@ -59,12 +59,18 @@ cd microsoft-teams-bot && npm run n8n      # n8n (Windows: sets N8N_BLOCK_ENV_AC
 cd microsoft-teams-bot && npm run bot      # nodemon watch mode
 cd microsoft-teams-bot && npm run tunnel   # devtunnel host tidy-river-mfkpvdl.euw
 
-# Deploy/update n8n workflow
-node orchestrator/n8n/deploy.js --url http://localhost:5678 --key <api-key>
-node orchestrator/n8n/deploy.js --url http://localhost:5678 --key <api-key> --file orchestrator/n8n/echo-workflow.json
+# Deploy/update n8n workflow (uses n8nac Dev environment — no URL/key needed)
+npx n8nac push orchestrator/n8n/presale-agent-workflow.json --env Dev
+npx n8nac push orchestrator/n8n/echo-workflow.json --env Dev
 
 # Rebuild Teams app zip after manifest changes
 cd microsoft-teams-bot && npm run build:teams
+
+# n8nac — workflow as code (watches local workflow files and syncs with n8n)
+npx n8nac watch                          # watch mode (also runs as part of start:dev)
+npx n8nac list                           # list all workflows
+npx n8nac push <path>                    # upload a local workflow to n8n
+npx n8nac pull <workflowId>              # download a workflow from n8n
 ```
 
 ### Claude Slash Commands
@@ -74,6 +80,13 @@ cd microsoft-teams-bot && npm run build:teams
 /deploy-n8n [args]  # runs: node orchestrator/n8n/deploy.js <args>
                     #   requires --url <n8n-server-url>
                     #   optional --key <api-key>, --file <path>, --name <workflow-name>
+```
+
+### n8nac One-time Setup
+
+```bash
+# Initialize the Dev environment (already done — stored in n8nac config)
+npx n8nac env add Dev --base-url http://localhost:5678 --api-key <n8n-api-key>
 ```
 
 ### One-time setup
@@ -181,7 +194,7 @@ Teams → Apps → Manage your apps → Upload a custom app → select the zip.
 | Layer | Technology |
 |---|---|
 | Teams Bot | Node.js, botbuilder ^4.23, restify |
-| Orchestrator | n8n (global npm — `n8n start`) |
+| Orchestrator | n8n (global npm — `n8n start`) + n8nac (workflow as code) |
 | LLM | Claude Sonnet 4.6 (Anthropic, via n8n httpRequest) |
 | Conversation Memory | n8n workflow staticData (in-memory, 10-turn window) |
 | Vector DB | Qdrant — **deferred** (needs Docker/virtualization) |

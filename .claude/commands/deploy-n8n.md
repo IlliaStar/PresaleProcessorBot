@@ -1,32 +1,34 @@
 ---
-description: Deploy and activate an n8n workflow to an n8n server
+description: Deploy and activate an n8n workflow to n8n using n8nac
 ---
 
-Deploy a workflow JSON file to n8n via the REST API, then activate it.
+Deploy a workflow JSON file to n8n using `n8nac push`, then activate it.
 
-The API key is loaded automatically from `orchestrator/n8n/.env`.
+The `Dev` environment is pre-configured (http://localhost:5678) — no URL or API key needed.
 
-**Required argument:** `--url <n8n-server-url>`
 **Select workflow (pick one):**
 - `--file <path>` — path to any workflow JSON file
-- `--name <workflow-name>` — find workflow by its `name` field inside `orchestrator/n8n/*.json`
-- *(omit both)* — defaults to `orchestrator/n8n/presale-agent-workflow.json`
-
-**Optional:**
-- `--key <api-key>` — override the API key from `.env`
+- *(omit)* — defaults to `orchestrator/n8n/presale-agent-workflow.json`
 
 Arguments passed by user: `$ARGUMENTS`
 
 ## Steps
 
-1. Confirm `--url` was provided in `$ARGUMENTS`. If missing, ask the user for the n8n server URL.
+1. Resolve the workflow file path:
+   - If `--file <path>` is in `$ARGUMENTS`, use that path.
+   - Otherwise default to `orchestrator/n8n/presale-agent-workflow.json`.
 
-2. Run the deploy script from the project root:
+2. Push the workflow using n8nac:
    ```bash
-   node orchestrator/n8n/deploy.js $ARGUMENTS
+   npx n8nac push <resolved-path> --env Dev
    ```
 
-3. Report back:
+3. Activate the workflow:
+   ```bash
+   npx n8nac workflow activate <workflowId> --env Dev
+   ```
+
+4. Report back:
    - Whether the workflow was created or updated
    - The workflow ID
    - The live webhook URL

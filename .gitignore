@@ -3,3 +3,4 @@ node_modules/
 *.log
 devtunnel.log
 .n8n/
+.claude/settings.local.json

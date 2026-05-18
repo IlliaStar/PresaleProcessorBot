@@ -1,0 +1,14 @@
+{
+  "workflows": {
+    "RVCWrqDzm5GGPzkv": {
+      "lastSyncedHash": "2d0b15131d2d5ad978f746d45daedff2b72ff1404e2b83236bc38369e62d739e",
+      "lastSyncedAt": "2026-05-18T19:07:30.201Z",
+      "filename": "Presale Processing Agent — Claude.workflow.ts"
+    },
+    "kXMKFIPi1ZYUqJ4c": {
+      "lastSyncedHash": "eab9dae64a4a2426ef1c9fbaba211752f481cb6b533d857612a495caee2bc8dd",
+      "lastSyncedAt": "2026-05-18T19:32:00.707Z",
+      "filename": "Presale Processing Agent — AI Agent.workflow.ts"
+    }
+  }
+}
