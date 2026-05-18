@@ -1,0 +1,23 @@
+{
+  "name": "presale-teams-bot",
+  "version": "1.0.0",
+  "description": "Microsoft Teams bot relay for the Presale Processing Agent",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "build:teams": "node teams-app/build-package.js"
+  },
+  "dependencies": {
+    "botbuilder": "^4.23.0",
+    "dotenv": "^16.4.5",
+    "restify": "^11.1.0"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1",
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

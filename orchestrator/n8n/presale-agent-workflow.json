@@ -1,0 +1,103 @@
+{
+  "name": "Presale Processing Agent — Claude",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "presale-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b1c2d3e4-0001-4000-8000-000000000001",
+      "name": "Teams Bot Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "presale-agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').trim();\nconst attachments = body.attachments || [];\nconst userName = body.userName || 'User';\n\nconst systemPrompt = `You are an expert presale consultant and software architect at EPAM Systems.\nAnalyze the presale request and produce a structured response:\n\n1. **Executive Summary** — 2-3 sentence scope overview\n2. **Key Requirements** — functional and non-functional requirements identified\n3. **Work Breakdown Structure (WBS)** — hierarchical breakdown of work packages\n4. **Effort Estimates** — per work package in person-days (min/max range)\n5. **Total Estimate** — combined effort with confidence level (Low / Medium / High)\n6. **Risks & Assumptions** — key risks and assumptions affecting the estimate\n\nFormat in Markdown. Be specific and actionable.\nIf the request lacks detail, note what additional information would improve the estimate.`;\n\nconst userContent = [];\n\nif (message) {\n  userContent.push({ type: 'text', text: `Presale request from ${userName}:\\n\\n${message}` });\n}\n\nfor (const att of attachments) {\n  if (att.content && att.contentType === 'application/pdf') {\n    userContent.push({\n      type: 'document',\n      source: { type: 'base64', media_type: 'application/pdf', data: att.content }\n    });\n    userContent.push({ type: 'text', text: `[Attached PDF: ${att.name}]` });\n  } else if (att.name) {\n    const note = att.content\n      ? `[File: ${att.name} — ${att.contentType}, ${Math.round((att.sizeBytes || 0) / 1024)} KB — format not supported for direct analysis]`\n      : `[File: ${att.name} — could not be downloaded]`;\n    userContent.push({ type: 'text', text: note });\n  }\n}\n\nif (userContent.length === 0) {\n  userContent.push({ type: 'text', text: 'Hello, please provide a presale request to analyze.' });\n}\n\nreturn [{\n  json: {\n    claudeBody: {\n      model: 'claude-sonnet-4-6',\n      max_tokens: 4096,\n      system: systemPrompt,\n      messages: [{ role: 'user', content: userContent }]\n    }\n  }\n}];"
+      },
+      "id": "b1c2d3e4-0002-4000-8000-000000000002",
+      "name": "Prepare Claude Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "anthropic-beta",
+              "value": "pdfs-2024-09-25"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.claudeBody) }}",
+        "options": {}
+      },
+      "id": "b1c2d3e4-0003-4000-8000-000000000003",
+      "name": "Call Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst reply = response?.content?.[0]?.text || 'No response from Claude.';\nreturn [{ json: { reply } }];"
+      },
+      "id": "b1c2d3e4-0004-4000-8000-000000000004",
+      "name": "Extract Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "b1c2d3e4-0005-4000-8000-000000000005",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Teams Bot Webhook": {
+      "main": [[{ "node": "Prepare Claude Request", "type": "main", "index": 0 }]]
+    },
+    "Prepare Claude Request": {
+      "main": [[{ "node": "Call Claude", "type": "main", "index": 0 }]]
+    },
+    "Call Claude": {
+      "main": [[{ "node": "Extract Reply", "type": "main", "index": 0 }]]
+    },
+    "Extract Reply": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "44c69ed7-637b-48ec-922e-a5eacbfcb938",
+  "packageName": "com.epam.presale-agent",
+  "developer": {
+    "name": "EPAM Presale Team",
+    "websiteUrl": "https://www.epam.com",
+    "privacyUrl": "https://www.epam.com/privacy",
+    "termsOfUseUrl": "https://www.epam.com/terms"
+  },
+  "name": {
+    "short": "Presale Agent",
+    "full": "Presale Processing Agent"
+  },
+  "description": {
+    "short": "AI-powered presale estimation assistant",
+    "full": "Analyzes presale requests, estimates effort, and generates a structured WBS and cost estimate."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#0078D4",
+  "bots": [
+    {
+      "botId": "44c69ed7-637b-48ec-922e-a5eacbfcb938",
+      "scopes": ["personal", "team", "groupchat"],
+      "supportsFiles": true,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": ["personal", "team", "groupchat"],
+          "commands": [
+            {
+              "title": "help",
+              "description": "Show what this bot can do"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": []
+}
