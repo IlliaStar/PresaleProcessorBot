@@ -1,0 +1,23 @@
+{
+  "version": 4,
+  "activeEnvironmentId": "dev-2",
+  "environmentTargets": [
+    {
+      "id": "dev",
+      "name": "Dev",
+      "kind": "external-instance",
+      "url": "http://localhost:5678"
+    }
+  ],
+  "environments": [
+    {
+      "id": "dev-2",
+      "name": "Dev",
+      "environmentTargetId": "dev",
+      "projectId": "personal",
+      "projectName": "Personal",
+      "syncFolder": "workflows",
+      "folderSync": false
+    }
+  ]
+}

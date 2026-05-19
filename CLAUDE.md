@@ -7,11 +7,12 @@ AI-powered agent that analyzes presale requests via Microsoft Teams, estimates e
 ## Architecture
 
 ```
-Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webhook → Claude Sonnet 4.6
+Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webhook → n8n AI Agent → Claude Haiku 4.5
 ```
 
 > Qdrant (vector search) and SharePoint (file storage) are **planned but not yet implemented**.
-> Current multi-turn memory uses n8n workflow `staticData` (in-memory, lost on n8n restart, last 10 turns).
+> Current multi-turn memory uses n8n **Window Buffer Memory** (LangChain, in-memory, last 10 turns, lost on n8n restart).
+> Bot uses **fire-and-forget** pattern — sends payload to n8n, n8n calls back via `PROACTIVE_CALLBACK_URL`.
 
 ## Directory Structure
 
@@ -33,13 +34,14 @@ microsoft-teams-bot/          # Node.js Teams bot (relay only)
 
 orchestrator/
   n8n/
-    presale-agent-workflow.json  # Main 6-node workflow: webhook → history → Claude → reply
+    presale-agent-workflow.json  # Main 7-node workflow: webhook → AI Agent (LangChain) → proactive callback
     echo-workflow.json           # 3-node smoke-test echo workflow
     deploy.js                    # CLI: deploys/activates workflow via n8n REST API
     .env.example                 # ANTHROPIC_API_KEY=
 
-integrations/                 # Future Docker stack (not in use — no virtualization)
+integrations/                 # Docker stack
   docker-compose.yml          # n8n + Qdrant service definitions
+  n8nac-config.json           # n8nac Dev environment config (localhost:5678)
   .env.example                # N8N_WEBHOOK_BASE_URL, GENERIC_TIMEZONE
 
 .claude/
@@ -48,14 +50,20 @@ integrations/                 # Future Docker stack (not in use — no virtualiz
     start-dev.md              # /start-dev slash command
 ```
 
+## Rules
+
+- **Always use the n8n MCP tools** (`n8n_*`) for all n8n workflow management (create, update, activate, deploy, list). Never use the CLI (`npx n8nac`, `node deploy.js`) unless the MCP tool is unavailable.
+
 ## Key Commands
 
 ```bash
-# Start all dev services at once (n8n + bot + tunnel via concurrently)
+# Start n8n via Docker (do this first)
+cd integrations && docker compose up -d n8n
+
+# Start bot + tunnel + n8nac watch (n8n is handled by Docker now)
 cd microsoft-teams-bot && npm run start:dev
 
 # Or start individually:
-cd microsoft-teams-bot && npm run n8n      # n8n (Windows: sets N8N_BLOCK_ENV_ACCESS_IN_NODE=false)
 cd microsoft-teams-bot && npm run bot      # nodemon watch mode
 cd microsoft-teams-bot && npm run tunnel   # devtunnel host tidy-river-mfkpvdl.euw
 
@@ -103,8 +111,9 @@ az bot update --resource-group presale-agent-rg --name presale-bot \
   --endpoint "https://tidy-river-mfkpvdl.euw-3978.devtunnels.ms/api/messages"
 ```
 
-> **Note:** Docker/virtualization is not available on this machine.
-> `integrations/docker-compose.yml` is kept for future reference.
+> **Note:** Docker is available. n8n runs via `integrations/docker-compose.yml`.
+> Start n8n: `cd integrations && docker compose up -d n8n`
+> Stop n8n: `cd integrations && docker compose down`
 
 ## Environment Setup
 
@@ -119,35 +128,37 @@ PORT=3978
 N8N_WEBHOOK_URL=http://localhost:5678/webhook/presale-agent
 N8N_TIMEOUT=120000          # ms, default 120 s
 MAX_ATTACHMENT_BYTES=10485760  # 10 MB cap on downloaded attachments
+PROACTIVE_CALLBACK_URL=http://host.docker.internal:3978/proactive  # required: n8n runs in Docker
 ```
 
 ### `orchestrator/n8n/.env`
 
 ```
 N8N_API_KEY=<n8n api key>
-ANTHROPIC_API_KEY=<key>     # used by the n8n workflow via httpRequest node
+ANTHROPIC_API_KEY=<key>     # stored as n8n credential "Anthropic account" (type: anthropicApi)
 ```
 
 ## n8n Workflow: presale-agent
 
-Pipeline (6 nodes):
+**Workflow ID:** `Crhg0EtBQyP0vEWx`
 
-1. **Teams Bot Webhook** — POST `/webhook/presale-agent`, `responseMode: responseNode`
-2. **Load Conversation History** — reads per-`conversationId` turn history from `staticData` (in-memory)
-3. **Prepare Claude Request** — builds Anthropic Messages API body:
-   - System: expert EPAM presale consultant → Executive Summary, Key Requirements, WBS, Effort Estimates, Risks
-   - PDF attachments sent as `document` content blocks (`pdfs-2024-09-25` beta); other file types noted as unsupported
-   - Model: `claude-sonnet-4-6`, `max_tokens: 4096`, last 10 turns prepended
-4. **Call Claude** — HTTP POST `https://api.anthropic.com/v1/messages` with header `anthropic-beta: pdfs-2024-09-25`
-5. **Extract Reply** — extracts `content[0].text`
-6. **Save Conversation History** — appends user+assistant turn to staticData, capped at 10 turns
-7. **Respond to Webhook** — returns `{ reply: "..." }` to the bot
+Pipeline (7 nodes):
+
+1. **Teams Bot Webhook** — POST `/webhook/presale-agent`, `responseMode: onReceived` (returns 200 immediately)
+2. **Prepare Input** — extracts `conversationId`, `userMessage`, `sessionId` from body; formats attachment tags
+3. **AI Agent** (LangChain) — runs Claude with system prompt: expert EPAM presale consultant → Executive Summary, Key Requirements, WBS, Effort Estimates, Risks
+4. **Anthropic Chat Model** — `claude-haiku-4-5-20251001`, `max_tokens: 4096`; credential: "Anthropic account"
+5. **Window Buffer Memory** — per-`sessionId` conversation window, last 10 turns (in-memory)
+6. **Format Reply** — extracts `output` text from agent response
+7. **Proactive Callback** — POST to `callbackUrl` (from request body) with `{ conversationId, reply }`
 
 Echo workflow: POST `/webhook/echo-test` → echoes message + file names (smoke test).
 
+> **After n8n container recreation:** credential ID changes. Create "Anthropic account" credential in UI, then update workflow node via MCP: `updateNode` on "Anthropic Chat Model" with new credential ID.
+
 ## n8n Webhook Contract
 
-The bot POSTs to `N8N_WEBHOOK_URL` with:
+The bot fires-and-forgets to `N8N_WEBHOOK_URL` (10 s timeout, no response body used):
 ```json
 {
   "message": "user text",
@@ -156,16 +167,20 @@ The bot POSTs to `N8N_WEBHOOK_URL` with:
   "userName": "...",
   "channelId": "msteams",
   "serviceUrl": "...",
+  "callbackUrl": "http://host.docker.internal:3978/proactive",
   "attachments": [{
     "name": "file.pdf",
     "contentType": "application/pdf",
     "contentUrl": "...",
-    "content": "<base64-encoded bytes, max 10 MB>"
+    "content": "<base64-encoded bytes, max 10 MB>",
+    "sizeBytes": 12345
   }]
 }
 ```
 
-Attachments are **downloaded by the bot** (Bearer token via `MicrosoftAppCredentials`) and base64-encoded before being forwarded. n8n responds with `{ "reply": "..." }`.
+Attachments are **downloaded by the bot** (Bearer token via `MicrosoftAppCredentials`) and base64-encoded before forwarding.
+
+n8n processes asynchronously, then POSTs to `callbackUrl` with `{ conversationId, reply }`. The bot's `/proactive` endpoint receives this and sends the reply to Teams via `adapter.continueConversation`.
 
 ## Azure Resources
 
@@ -188,15 +203,17 @@ Teams → Apps → Manage your apps → Upload a custom app → select the zip.
 ## Known Issues Fixed
 
 - **Service Principal missing** — had to run `az ad sp create --id 44c69ed7-637b-48ec-922e-a5eacbfcb938` manually
+- **Proactive callback unreachable from Docker** — n8n container cannot reach `localhost:3978`; use `PROACTIVE_CALLBACK_URL=http://host.docker.internal:3978/proactive`
+- **Credential ID reset on container recreation** — fresh n8n DB assigns new credential IDs; must recreate "Anthropic account" credential and update workflow node
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Teams Bot | Node.js, botbuilder ^4.23, restify |
-| Orchestrator | n8n (global npm — `n8n start`) + n8nac (workflow as code) |
-| LLM | Claude Sonnet 4.6 (Anthropic, via n8n httpRequest) |
-| Conversation Memory | n8n workflow staticData (in-memory, 10-turn window) |
+| Orchestrator | n8n (Docker) + n8nac (workflow as code) |
+| LLM | Claude Haiku 4.5 (Anthropic, via n8n LangChain AI Agent) |
+| Conversation Memory | n8n Window Buffer Memory (LangChain, in-memory, 10-turn window) |
 | Vector DB | Qdrant — **deferred** (needs Docker/virtualization) |
 | File Storage | SharePoint — **planned**, not yet integrated |
 | Tunnel (dev) | devtunnel (Microsoft) |
