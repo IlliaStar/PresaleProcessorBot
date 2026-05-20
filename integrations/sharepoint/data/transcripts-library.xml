@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One folder per conversationId: PDFs, wbs.md, estimates.json, transcript-overflow-<turnNo>.md -->
+<pnp:ListInstance xmlns:pnp="http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema"
+                  Title="Transcripts"
+                  Description="One folder per conversationId: PDFs, wbs.md, estimates.json, overflow files"
+                  TemplateType="101"
+                  Url="Transcripts"
+                  EnableVersioning="true"
+                  OnQuickLaunch="true" />

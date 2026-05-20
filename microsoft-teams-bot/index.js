@@ -38,11 +38,9 @@ server.post('/proactive', async (req, res) => {
     res.json(404, { error: `No conversation reference for conversationId: ${conversationId}` });
     return;
   }
-  const { ref, typingTimer } = stored;
-  if (typingTimer) {
-    clearInterval(typingTimer);
-    stored.typingTimer = null;
-  }
+  const { ref, typingTimer, responseDeadline } = stored;
+  if (typingTimer) { clearInterval(typingTimer); stored.typingTimer = null; }
+  if (responseDeadline) { clearTimeout(responseDeadline); stored.responseDeadline = null; }
   try {
     await adapter.continueConversation(ref, async (turnContext) => {
       await turnContext.sendActivity(MessageFactory.text(reply));

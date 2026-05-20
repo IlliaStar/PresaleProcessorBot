@@ -7,12 +7,28 @@ AI-powered agent that analyzes presale requests via Microsoft Teams, estimates e
 ## Architecture
 
 ```
-Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webhook → n8n AI Agent → Claude Haiku 4.5
+Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webhook
+                                                                       ↓
+                                                                  Dispatcher
+                                                                       ↓
+                                  SharePoint state store ←→ Resolve Routing Step (state machine)
+                                  (Conversations + Turns)            ↓
+                                                                Topic Router
+                                                                       ↓
+                                                ┌─── presale_analysis (Claude Sonnet 4.6)
+                                                ├─── clarification   (Claude Sonnet 4.6)
+                                                ├─── status_check    (Claude Sonnet 4.6)
+                                                └─── greeting        (static reply)
+                                                                       ↓
+                                                          Append turns to SharePoint
+                                                                       ↓
+                                                         Proactive Callback → Teams
 ```
 
-> Qdrant (vector search) and SharePoint (file storage) are **planned but not yet implemented**.
-> Current multi-turn memory uses n8n **Window Buffer Memory** (LangChain, in-memory, last 10 turns, lost on n8n restart).
+> **Conversation state lives in SharePoint** (List `Conversations` + List `Turns` + Document Library `Transcripts`). Each turn reads/writes the lifecycle step (`new → intake → clarification → estimation → review → completed`) — no in-memory state. See [SharePoint State Store](#sharepoint-state-store).
+> Qdrant (vector search) is **planned but not yet implemented**.
 > Bot uses **fire-and-forget** pattern — sends payload to n8n, n8n calls back via `PROACTIVE_CALLBACK_URL`.
+> **Intent classification** is **context-aware** — Haiku 4.5 receives `currentStep` + last 2 turns and outputs one of `continue / status_query / closing / social_only / restart`. A cheap regex pre-filter short-circuits trivial pleasantries.
 
 ## Directory Structure
 
@@ -34,15 +50,17 @@ microsoft-teams-bot/          # Node.js Teams bot (relay only)
 
 orchestrator/
   n8n/
-    presale-agent-workflow.json  # Main 7-node workflow: webhook → AI Agent (LangChain) → proactive callback
-    echo-workflow.json           # 3-node smoke-test echo workflow
-    deploy.js                    # CLI: deploys/activates workflow via n8n REST API
-    .env.example                 # ANTHROPIC_API_KEY=
+    docker-compose.yml               # n8n + Qdrant Docker stack
+    presale-agent-workflow.json      # Main workflow: Webhook → AI Agent (Claude Sonnet 4.6 + Memory) → Callback
+    .env.example                     # ANTHROPIC_API_KEY, AZURE_GRAPH_*, SHAREPOINT_*
+    _backup/
+      presale-agent-workflow.json    # Archived dispatcher version (SharePoint state machine)
 
-integrations/                 # Docker stack
-  docker-compose.yml          # n8n + Qdrant service definitions
-  n8nac-config.json           # n8nac Dev environment config (localhost:5678)
-  .env.example                # N8N_WEBHOOK_BASE_URL, GENERIC_TIMEZONE
+integrations/
+  sharepoint/                        # SharePoint provisioning (state store — future use)
+    data/                            # PnP ListInstance fragments
+    deployment/                      # deploy.ps1 + provisioning.xml
+  .env.example
 
 .claude/
   commands/
@@ -58,24 +76,22 @@ integrations/                 # Docker stack
 
 ```bash
 # Start n8n via Docker (do this first)
-cd integrations && docker compose up -d n8n
+cd orchestrator/n8n && docker compose up -d n8n
 
-# Start bot + tunnel + n8nac watch (n8n is handled by Docker now)
+# Start bot + tunnel
 cd microsoft-teams-bot && npm run start:dev
 
 # Or start individually:
 cd microsoft-teams-bot && npm run bot      # nodemon watch mode
 cd microsoft-teams-bot && npm run tunnel   # devtunnel host tidy-river-mfkpvdl.euw
 
-# Deploy/update n8n workflow (uses n8nac Dev environment — no URL/key needed)
+# Deploy/update n8n workflow via MCP (preferred) — or n8nac as fallback:
 npx n8nac push orchestrator/n8n/presale-agent-workflow.json --env Dev
-npx n8nac push orchestrator/n8n/echo-workflow.json --env Dev
 
 # Rebuild Teams app zip after manifest changes
 cd microsoft-teams-bot && npm run build:teams
 
-# n8nac — workflow as code (watches local workflow files and syncs with n8n)
-npx n8nac watch                          # watch mode (also runs as part of start:dev)
+# n8nac — workflow as code
 npx n8nac list                           # list all workflows
 npx n8nac push <path>                    # upload a local workflow to n8n
 npx n8nac pull <workflowId>              # download a workflow from n8n
@@ -111,9 +127,9 @@ az bot update --resource-group presale-agent-rg --name presale-bot \
   --endpoint "https://tidy-river-mfkpvdl.euw-3978.devtunnels.ms/api/messages"
 ```
 
-> **Note:** Docker is available. n8n runs via `integrations/docker-compose.yml`.
-> Start n8n: `cd integrations && docker compose up -d n8n`
-> Stop n8n: `cd integrations && docker compose down`
+> **Note:** Docker is available. n8n runs via `orchestrator/n8n/docker-compose.yml`.
+> Start n8n: `cd orchestrator/n8n && docker compose up -d n8n`
+> Stop n8n: `cd orchestrator/n8n && docker compose down`
 
 ## Environment Setup
 
@@ -134,27 +150,40 @@ PROACTIVE_CALLBACK_URL=http://host.docker.internal:3978/proactive  # required: n
 ### `orchestrator/n8n/.env`
 
 ```
-N8N_API_KEY=<n8n api key>
-ANTHROPIC_API_KEY=<key>     # stored as n8n credential "Anthropic account" (type: anthropicApi)
+ANTHROPIC_API_KEY=<key>                  # n8n credential "Anthropic account" (type: anthropicApi)
+
+# Microsoft Graph credentials for SharePoint state store
+AZURE_GRAPH_CLIENT_ID=44c69ed7-637b-48ec-922e-a5eacbfcb938
+AZURE_GRAPH_CLIENT_SECRET=<value>
+AZURE_GRAPH_TENANT_ID=0d9ed809-b1ed-46bd-b3e3-5ccb093ae299
+
+# SharePoint identifiers (resolve via Graph after creating the site — see sharepoint-setup.md)
+SHAREPOINT_SITE_ID=<value>
+SHAREPOINT_CONVERSATIONS_LIST_ID=<value>
+SHAREPOINT_TURNS_LIST_ID=<value>
+SHAREPOINT_DRIVE_ID=<value>
 ```
 
-## n8n Workflow: presale-agent
+## n8n Workflows
 
-**Workflow ID:** `Crhg0EtBQyP0vEWx`
+### Main Workflow: Presale Agent
+
+**Workflow ID:** `qkR7QSBlFAIJzxMi`  
+**File:** `orchestrator/n8n/presale-agent-workflow.json`
 
 Pipeline (7 nodes):
 
-1. **Teams Bot Webhook** — POST `/webhook/presale-agent`, `responseMode: onReceived` (returns 200 immediately)
-2. **Prepare Input** — extracts `conversationId`, `userMessage`, `sessionId` from body; formats attachment tags
-3. **AI Agent** (LangChain) — runs Claude with system prompt: expert EPAM presale consultant → Executive Summary, Key Requirements, WBS, Effort Estimates, Risks
-4. **Anthropic Chat Model** — `claude-haiku-4-5-20251001`, `max_tokens: 4096`; credential: "Anthropic account"
-5. **Window Buffer Memory** — per-`sessionId` conversation window, last 10 turns (in-memory)
-6. **Format Reply** — extracts `output` text from agent response
-7. **Proactive Callback** — POST to `callbackUrl` (from request body) with `{ conversationId, reply }`
+1. **Teams Bot Webhook** — POST `/webhook/presale-agent`, `webhookId: presale-agent`, `responseMode: onReceived`
+2. **Prepare Input** — normalizes body → `{ userMessage, rawMessage, conversationId, callbackUrl, userName }`; inlines attachment metadata
+3. **Presale Agent** (`@n8n/n8n-nodes-langchain.agent`) — Claude Sonnet 4.6, system prompt with intake/clarification/estimation/WBS/closing lifecycle
+4. **Claude Sonnet 4.6** (`lmChatAnthropic`) — connected via `ai_languageModel`; maxTokens 4096, timeout 120 s; credential `GQ2oI4MTfb66gp8c`
+5. **Window Buffer Memory** (`memoryBufferWindow`) — connected via `ai_memory`; `sessionKey = conversationId`; `contextWindowLength = 20`
+6. **Format Reply** — extracts `$json.output` → `{ conversationId, reply, callbackUrl }`
+7. **Teams Callback** — POST `callbackUrl` with `{ conversationId, reply }`; `continueOnFail: true`
 
-Echo workflow: POST `/webhook/echo-test` → echoes message + file names (smoke test).
+> **After n8n container recreation:** credential IDs reset. Recreate "Anthropic account" (anthropicApi), then update the credential ID in the Claude Sonnet 4.6 node.
 
-> **After n8n container recreation:** credential ID changes. Create "Anthropic account" credential in UI, then update workflow node via MCP: `updateNode` on "Anthropic Chat Model" with new credential ID.
+> **Archived dispatcher workflow** (SharePoint state machine, 22 nodes) is preserved in `orchestrator/n8n/_backup/presale-agent-workflow.json`.
 
 ## n8n Webhook Contract
 
@@ -195,6 +224,54 @@ n8n processes asynchronously, then POSTs to `callbackUrl` with `{ conversationId
 | Teams Channel | Enabled |
 | devtunnel URL | `https://tidy-river-mfkpvdl.euw-3978.devtunnels.ms` (persistent) |
 
+## SharePoint State Store
+
+**Site:** `Presale Agent Bot` at `https://<tenant>.sharepoint.com/sites/PresaleAgentBot`  
+**Setup guide:** `orchestrator/n8n/sharepoint-setup.md`
+
+### List `Conversations` (one item per conversationId)
+
+| Column | Type | Purpose |
+|---|---|---|
+| `conversationId` | Single line, indexed | Logical key |
+| `userId`, `userName`, `channelId` | Single line | Identity |
+| `currentStep` | Choice: `new` / `intake` / `clarification` / `estimation` / `review` / `completed` | Lifecycle position |
+| `status` | Choice: `Active` / `Archived` | Soft delete |
+| `createdAt`, `modifiedAt` | DateTime | Audit |
+| `clarificationTurns` | Number | Counter for `≥5` forced-advance rule |
+| `summary` | Multi-line text | LLM-maintained one-paragraph summary |
+| `wbsArtifactRef` | Hyperlink | Link to `wbs.md` in Transcripts |
+| `lastTurnNo` | Number | Monotonic counter for turn ordering |
+
+### List `Turns` (one item per message)
+
+| Column | Type | Purpose |
+|---|---|---|
+| `conversationId` | Single line, indexed | FK |
+| `turnNo` | Number, indexed | Monotonic per conversation |
+| `role` | Choice: `user` / `assistant` | |
+| `step` | Choice (same enum) | Step at time of turn |
+| `intent` | Single line | Classifier output (user turns only) |
+| `text` | Multi-line text | Message body (≤63K chars) |
+| `ts` | DateTime | |
+| `overflowRef` | Hyperlink | Points to `transcript-overflow-<n>.md` in Transcripts when text >63K |
+| `attachmentsJson` | Multi-line text | `[{name, contentType, sizeBytes}]` |
+
+### Document Library `Transcripts`
+
+One folder per `conversationId` containing user-uploaded PDFs, `wbs.md`, `estimates.json`, and any `transcript-overflow-<turnNo>.md` files.
+
+### Classifier Categories
+
+Context-aware Haiku 4.5 receives `currentStep` + last 2 turns and returns one of:
+- `continue` — substantive content for current step
+- `status_query` — asking about progress (non-advancing)
+- `closing` — approval / sign-off
+- `social_only` — pure pleasantry (no content)
+- `restart` — explicit request for a new presale
+
+A regex pre-filter sets `prefilterIntent` directly on `≤3 word` social messages and short closing phrases, bypassing the LLM call for predictable shortcuts.
+
 ## Teams App Sideload
 
 Package: `microsoft-teams-bot/teams-app/presale-bot.zip`
@@ -204,7 +281,14 @@ Teams → Apps → Manage your apps → Upload a custom app → select the zip.
 
 - **Service Principal missing** — had to run `az ad sp create --id 44c69ed7-637b-48ec-922e-a5eacbfcb938` manually
 - **Proactive callback unreachable from Docker** — n8n container cannot reach `localhost:3978`; use `PROACTIVE_CALLBACK_URL=http://host.docker.internal:3978/proactive`
-- **Credential ID reset on container recreation** — fresh n8n DB assigns new credential IDs; must recreate "Anthropic account" credential and update workflow node
+- **Credential ID reset on container recreation** — fresh n8n DB assigns new credential IDs; must recreate "Anthropic account" + "Microsoft Graph - Presale Agent" credentials and update workflow node references
+
+## Architecture Decisions
+
+- **SharePoint over n8n Window Buffer for memory** — restart-safe persistence, auditable in SP UI, no per-topic isolation. Trade-off: ~100–300 ms Graph latency per turn.
+- **Turns as a List instead of `messages.jsonl` in Library** — no GET-then-PUT race on appends, queryable/filterable in SP UI, structured per-turn metadata. Trade-off: SP multi-line text columns cap at ~63K chars per row — handled via `overflowRef` to a fallback file in the Library.
+- **Explicit state machine (`new → intake → clarification → estimation → review → completed`) over LLM-driven routing** — deterministic for PoC, easy to audit, fewer LLM calls per turn. Intent classifier (Haiku 4.5) serves as a hint; routing rules in `Resolve Routing Step` make the final decision.
+- **Greeting WF reachable only at `new`/`completed`** — social pleasantries mid-conversation route to the active step's WF (e.g., clarification), preventing accidental state resets.
 
 ## Tech Stack
 
@@ -212,10 +296,11 @@ Teams → Apps → Manage your apps → Upload a custom app → select the zip.
 |---|---|
 | Teams Bot | Node.js, botbuilder ^4.23, restify |
 | Orchestrator | n8n (Docker) + n8nac (workflow as code) |
-| LLM | Claude Haiku 4.5 (Anthropic, via n8n LangChain AI Agent) |
-| Conversation Memory | n8n Window Buffer Memory (LangChain, in-memory, 10-turn window) |
+| Intent Classifier | Claude Haiku 4.5 (context-aware: currentStep + last 2 turns, 16 tokens max) |
+| LLM (presale/clarification/status) | Claude Sonnet 4.6 (Anthropic, via n8n LangChain AI Agent) |
+| Conversation State | SharePoint Online via Microsoft Graph (Lists `Conversations` + `Turns`, Library `Transcripts`) |
+| State Persistence | Per-turn writes — no in-memory state; restart-safe |
 | Vector DB | Qdrant — **deferred** (needs Docker/virtualization) |
-| File Storage | SharePoint — **planned**, not yet integrated |
 | Tunnel (dev) | devtunnel (Microsoft) |
 | Bot Service | Azure Bot Service F0 |
 | Auth | Azure AD App Registration (SingleTenant) |

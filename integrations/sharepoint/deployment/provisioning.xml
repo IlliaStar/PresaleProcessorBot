@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pnp:Provisioning xmlns:pnp="http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema"
+                  xmlns:xi="http://www.w3.org/2001/XInclude">
+  <pnp:Preferences Generator="PnP.Framework"/>
+  <pnp:Templates ID="PRESALE-AGENT-TEMPLATES">
+    <pnp:ProvisioningTemplate ID="presale-agent" Version="1" BaseSiteTemplate="GROUP#0">
+      <pnp:Lists>
+        <xi:include href="..\data\conversations-list.xml"/>
+        <xi:include href="..\data\turns-list.xml"/>
+        <xi:include href="..\data\transcripts-library.xml"/>
+      </pnp:Lists>
+    </pnp:ProvisioningTemplate>
+  </pnp:Templates>
+</pnp:Provisioning>

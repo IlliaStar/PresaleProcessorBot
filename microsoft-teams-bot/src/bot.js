@@ -3,6 +3,9 @@ const { MicrosoftAppCredentials } = require('botframework-connector');
 const config = require('./config');
 const conversationStore = require('./conversationStore');
 
+// After 3 minutes without a callback, give up and send a timeout message
+const MAX_RESPONSE_WAIT_MS = 3 * 60 * 1000;
+
 function stripHtml(html) {
   return html
     .replace(/<[^>]*>/g, ' ')
@@ -41,12 +44,14 @@ class PresaleBot extends TeamsActivityHandler {
   }
 
   async _handleMessage(context) {
-    const ref = TurnContext.getConversationReference(context.activity);
-    conversationStore.set(ref.conversation.id, { ref, typingTimer: null });
+    const activity = context.activity;
+    const ref = TurnContext.getConversationReference(activity);
+    const conversationId = ref.conversation.id;
 
+    // Show typing indicator immediately
     await context.sendActivity({ type: ActivityTypes.Typing });
 
-    const activity = context.activity;
+    // Download attachments
     const attachments = await Promise.all(
       (activity.attachments || [])
         .filter((a) => a.contentUrl)
@@ -58,7 +63,7 @@ class PresaleBot extends TeamsActivityHandler {
 
     const payload = {
       message: stripHtml(activity.text || ''),
-      conversationId: activity.conversation.id,
+      conversationId,
       userId: activity.from.id,
       userName: activity.from.name || 'User',
       channelId: activity.channelId,
@@ -67,10 +72,10 @@ class PresaleBot extends TeamsActivityHandler {
       callbackUrl: config.proactiveCallbackUrl,
     };
 
+    // Keep sending typing every 3 s while n8n processes
     await context.sendActivity({ type: ActivityTypes.Typing });
-    const entry = conversationStore.get(activity.conversation.id);
     const typingTimer = setInterval(async () => {
-      const current = conversationStore.get(activity.conversation.id);
+      const current = conversationStore.get(conversationId);
       if (!current?.typingTimer) return;
       try {
         await this.adapter.continueConversation(ref, async (tc) => {
@@ -78,10 +83,38 @@ class PresaleBot extends TeamsActivityHandler {
         });
       } catch (_) {}
     }, 3000);
-    if (entry) entry.typingTimer = typingTimer;
 
-    this._callN8n(payload).catch((err) => {
-      console.error('[n8n fire-and-forget error]', err.message);
+    // Safeguard: if no callback arrives in MAX_RESPONSE_WAIT_MS, stop and apologise
+    const responseDeadline = setTimeout(async () => {
+      const entry = conversationStore.get(conversationId);
+      if (!entry?.typingTimer) return; // already resolved by /proactive
+      clearInterval(entry.typingTimer);
+      entry.typingTimer = null;
+      entry.responseDeadline = null;
+      try {
+        await this.adapter.continueConversation(ref, async (tc) => {
+          await tc.sendActivity(
+            MessageFactory.text('Processing took longer than expected. Please try again.')
+          );
+        });
+      } catch (_) {}
+    }, MAX_RESPONSE_WAIT_MS);
+
+    conversationStore.set(conversationId, { ref, typingTimer, responseDeadline });
+
+    // Fire and forget — n8n calls back via /proactive
+    this._callN8n(payload).catch(async (err) => {
+      console.error('[n8n error]', err.message);
+      const entry = conversationStore.get(conversationId);
+      if (entry?.typingTimer) { clearInterval(entry.typingTimer); entry.typingTimer = null; }
+      if (entry?.responseDeadline) { clearTimeout(entry.responseDeadline); entry.responseDeadline = null; }
+      try {
+        await this.adapter.continueConversation(ref, async (tc) => {
+          await tc.sendActivity(
+            MessageFactory.text("Sorry, I'm unable to reach the processing service right now. Please try again in a moment.")
+          );
+        });
+      } catch (_) {}
     });
   }
 
