@@ -1,0 +1,108 @@
+{
+  "id": "4EaRi9fClrf4Ay8n",
+  "name": "get_user_info",
+  "active": true,
+  "nodes": [
+    {
+      "id": "b1c2d3e4-0001-4000-8000-200000000001",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [260, 300],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {"name": "query", "type": "string"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "b1c2d3e4-0002-4000-8000-200000000002",
+      "name": "Get OAuth2 Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://login.microsoftonline.com/{{ $env.AZURE_GRAPH_TENANT_ID }}/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "grant_type", "value": "client_credentials"},
+            {"name": "client_id", "value": "={{ $env.AZURE_GRAPH_CLIENT_ID }}"},
+            {"name": "client_secret", "value": "={{ $env.AZURE_GRAPH_CLIENT_SECRET }}"},
+            {"name": "scope", "value": "https://graph.microsoft.com/.default"}
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1c2d3e4-0003-4000-8000-200000000003",
+      "name": "Get User Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Execute Workflow Trigger').item.json.query }}?$select=id,displayName,jobTitle,department,mail,officeLocation,userPrincipalName",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "=Bearer {{ $('Get OAuth2 Token').item.json.access_token }}"}
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1c2d3e4-0004-4000-8000-200000000004",
+      "name": "Get User Manager",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 300],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Execute Workflow Trigger').item.json.query }}/manager?$select=displayName,jobTitle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "=Bearer {{ $('Get OAuth2 Token').item.json.access_token }}"}
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1c2d3e4-0005-4000-8000-200000000005",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 300],
+      "parameters": {
+        "jsCode": "const user = $('Get User Profile').item.json;\nconst managerData = $('Get User Manager').item.json;\n\nconst parts = [\n  `Name: ${user.displayName || 'N/A'}`,\n  `Title: ${user.jobTitle || 'N/A'}`,\n  `Department: ${user.department || 'N/A'}`,\n  `Email: ${user.mail || user.userPrincipalName || 'N/A'}`,\n  `Office: ${user.officeLocation || 'N/A'}`,\n];\n\nif (managerData && !managerData.error && managerData.displayName) {\n  parts.push(`Manager: ${managerData.displayName} (${managerData.jobTitle || 'N/A'}`);\n}\n\nreturn [{ json: { result: parts.join('\\n') } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [[{"node": "Get OAuth2 Token", "type": "main", "index": 0}]]
+    },
+    "Get OAuth2 Token": {
+      "main": [[{"node": "Get User Profile", "type": "main", "index": 0}]]
+    },
+    "Get User Profile": {
+      "main": [[{"node": "Get User Manager", "type": "main", "index": 0}]]
+    },
+    "Get User Manager": {
+      "main": [[{"node": "Format Response", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

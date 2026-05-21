@@ -1,22 +1,12 @@
 ---
 description: Rules for the n8n orchestrator — workflow JSON files, node conventions, and deployment.
-globs: orchestrator/n8n/**
+paths: 
+  - orchestrator/n8n/**
 ---
 
 # n8n Orchestrator
 
 Manages the n8n workflow files that power the Presale Agent pipeline.
-
-## Structure
-
-```
-orchestrator/n8n/
-  docker-compose.yml               # n8n + Qdrant Docker stack
-  presale-agent-workflow.json      # Main workflow: Webhook → AI Agent (Claude Sonnet 4.6 + Memory) → Callback
-  .env.example                     # ANTHROPIC_API_KEY, AZURE_GRAPH_*, SHAREPOINT_*
-  _backup/
-    presale-agent-workflow.json    # Archived dispatcher (SharePoint state machine, 22 nodes)
-```
 
 ## Rules
 
@@ -30,3 +20,12 @@ orchestrator/n8n/
 - **`continueOnFail: true`** on the Teams Callback node — a failed callback must not crash the workflow.
 - **Window Buffer Memory sessionKey** — always set to `={{ $('Prepare Input').item.json.conversationId }}` so each Teams conversation has isolated memory.
 - **executionOrder** — always `"v1"` in workflow settings.
+- **Workflow Naming Conventions**:
+  - **Action-Oriented**: Start names with an action verb (e.g., "Extract User Info from Entra").
+  - **Contextual Prefixes**: Use tags for projects or environments (e.g., `[PPA]`, `[PROD]`).
+  - **Formatting**: Use `kebab-case` for workflow file names (e.g., `get-user-info-workflow.json`) and Title/Sentence case for n8n UI display names.
+  - **Modularity**: Clearly distinguish main workflows and sub-workflows (e.g., `Main - Presale Agent Processing`, `Sub - Get User Info`).
+- **Workflow IDs & Version Control**:
+  - **Stable IDs**: The `id` field in exported workflow JSONs must remain unchanged to prevent creating duplicates upon re-import.
+  - **Sub-workflow Dependencies**: Keep sub-workflow IDs strictly identical across environments to ensure "Execute Workflow" node linkages do not break.
+  - **UUIDv4 Generation**: When creating new workflows via code or AI, always generate a standard UUID v4 for the workflow ID.

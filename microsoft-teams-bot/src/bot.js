@@ -65,6 +65,7 @@ class PresaleBot extends TeamsActivityHandler {
       message: stripHtml(activity.text || ''),
       conversationId,
       userId: activity.from.id,
+      aadObjectId: activity.from.aadObjectId || '',
       userName: activity.from.name || 'User',
       channelId: activity.channelId,
       serviceUrl: activity.serviceUrl,

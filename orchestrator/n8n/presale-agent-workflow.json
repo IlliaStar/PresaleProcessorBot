@@ -1,5 +1,5 @@
 {
-  "id": "qkR7QSBlFAIJzxMi",
+  "id": "unPvfldAhlEkBcqi",
   "name": "Presale Agent",
   "active": true,
   "nodes": [
@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').trim();\nconst userName = body.userName || 'User';\nconst conversationId = body.conversationId || 'default';\nconst callbackUrl = body.callbackUrl || '';\nconst attachments = body.attachments || [];\n\nconst parts = [];\nif (message) parts.push(message);\nfor (const att of attachments) {\n  if (att.name && att.content) {\n    parts.push(`\\n[Attached file: ${att.name}, ${Math.round((att.sizeBytes || 0) / 1024)} KB]`);\n  } else if (att.name) {\n    parts.push(`\\n[File attached (could not be downloaded): ${att.name}]`);\n  }\n}\nconst userMessage = parts.join('\\n') || `Hello from ${userName}`;\n\nreturn [{ json: { userMessage, rawMessage: message, conversationId, callbackUrl, userName } }];"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').trim();\nconst userName = body.userName || 'User';\nconst conversationId = body.conversationId || 'default';\nconst callbackUrl = body.callbackUrl || '';\nconst attachments = body.attachments || [];\n\nconst parts = [];\nif (message) parts.push(message);\nfor (const att of attachments) {\n  if (att.name && att.content) {\n    parts.push(`\\n[Attached file: ${att.name}, ${Math.round((att.sizeBytes || 0) / 1024)} KB]`);\n  } else if (att.name) {\n    parts.push(`\\n[File attached (could not be downloaded): ${att.name}]`);\n  }\n}\nconst userMessage = parts.join('\\n') || `Hello from ${userName}`;\n\nconst userId = body.userId || body.from?.id || '';\nconst aadObjectId = body.aadObjectId || body.from?.aadObjectId || '';\nreturn [{ json: { userMessage, rawMessage: message, conversationId, callbackUrl, userName, userId, aadObjectId } }];"
       },
       "id": "a1b2c3d4-0002-4000-8000-100000000002",
       "name": "Prepare Input",
@@ -29,9 +29,9 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.userMessage }}",
+        "text": "={{ '[Context] aadObjectId=' + $json.aadObjectId + ', userName=' + $json.userName + '\\n\\n' + $json.userMessage }}",
         "options": {
-          "systemMessage": "You are an expert Presale Processing Agent for EPAM Systems.\n\nYour mission: Help sales teams analyze inbound presale requests, ask smart clarifying questions, produce effort estimates, and generate structured Work Breakdown Structures.\n\n## Conversation Lifecycle\n1. **Intake** — Acknowledge the request; identify what is needed to estimate\n2. **Clarification** — Ask 2–3 targeted questions if requirements are vague\n3. **Estimation** — Produce a structured effort estimate table by role\n4. **WBS** — Generate a Markdown WBS when estimates are confirmed or requested\n5. **Closing** — Acknowledge approval (\"approve\", \"confirm\", \"ship it\", \"одобряю\", \"подтверждаю\")\n\n## Estimate Table Format\n| Role     | Min (pd) | Max (pd) | Notes |\n|----------|----------|----------|---------|\n| BA       | ...      | ...      | ...     |\n| Backend  | ...      | ...      | ...     |\n| Frontend | ...      | ...      | ...     |\n| QA       | ...      | ...      | ...     |\n| DevOps   | ...      | ...      | ...     |\n| PM       | ...      | ...      | ...     |\n**Total: X–Y person-days** | Confidence: Low / Medium / High\n\n## Guidelines\n- Be professional and concise; use Markdown formatting\n- Ask at most 3 questions at a time\n- Respond in the same language the user writes in (English or Russian)\n- If an attached file is mentioned, acknowledge it and extract relevant requirements from the context\n\n- Engage in casual, polite, and helpful professional conversation.\n- Answer general questions using your internal knowledge.\n- Discuss presale concepts, technologies, or methodology without triggerring any enterprise automation tools.\n- DO NOT invoke tools if the user is just saying hello, asking \"how are you\", or asking abstract questions (e.g., \"What is the best tech stack for e-commerce?\").\n- If the user talks about a potential deal but hasn't explicitly asked to log it or process it yet, guide the conversation naturally and ask if they are ready to initiate the presale workflow.\n"
+          "systemMessage": "You are an expert Presale Processing Agent for EPAM Systems.\n\nYour mission: Help sales teams analyze inbound presale requests, ask smart clarifying questions, produce effort estimates, and generate structured Work Breakdown Structures.\n\n## Conversation Lifecycle\n1. **Intake** — Acknowledge the request; identify what is needed to estimate\n2. **Clarification** — Ask 2–3 targeted questions if requirements are vague\n3. **Estimation** — Produce a structured effort estimate table by role\n4. **WBS** — Generate a Markdown WBS when estimates are confirmed or requested\n5. **Closing** — Acknowledge approval (\"approve\", \"confirm\", \"ship it\", \"одобряю\", \"подтверждаю\")\n\n## Estimate Table Format\n| Role     | Min (pd) | Max (pd) | Notes |\n|----------|----------|----------|---------|\n| BA       | ...      | ...      | ...     |\n| Backend  | ...      | ...      | ...     |\n| Frontend | ...      | ...      | ...     |\n| QA       | ...      | ...      | ...     |\n| DevOps   | ...      | ...      | ...     |\n| PM       | ...      | ...      | ...     |\n**Total: X–Y person-days** | Confidence: Low / Medium / High\n\n## Guidelines\n- Be professional and concise; use Markdown formatting\n- Ask at most 3 questions at a time\n- Respond in the same language the user writes in (English or Russian)\n- If an attached file is mentioned, acknowledge it and extract relevant requirements from the context\n\n- Engage in casual, polite, and helpful professional conversation.\n- Answer general questions using your internal knowledge.\n- Discuss presale concepts, technologies, or methodology without triggerring any enterprise automation tools.\n- DO NOT invoke tools if the user is just saying hello, asking \"how are you\", or asking abstract questions (e.g., \"What is the best tech stack for e-commerce?\").\n- If the user talks about a potential deal but hasn't explicitly asked to log it or process it yet, guide the conversation naturally and ask if they are ready to initiate the presale workflow.\n\n## Tools\n- **get_user_info**: Looks up the requester's Azure AD profile (job title, department, manager) using their Azure AD Object ID. Call this tool at the start of the Intake step to better understand who you are speaking with. Do not call it for greetings, status queries, or when the aadObjectId is not available. When you receive a result, briefly acknowledge it in one sentence at the start of your first substantive reply (e.g., \"I can see you're a [title] in [department] — let's get started.\").\n"
         }
       },
       "id": "a1b2c3d4-0003-4000-8000-100000000003",
@@ -56,7 +56,7 @@
       "position": [528, 528],
       "credentials": {
         "anthropicApi": {
-          "id": "GQ2oI4MTfb66gp8c",
+          "id": "tveGybvizLkoc6QO",
           "name": "Anthropic account"
         }
       }
@@ -90,14 +90,8 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {
-              "name": "conversationId",
-              "value": "={{ $json.conversationId }}"
-            },
-            {
-              "name": "reply",
-              "value": "={{ $json.reply }}"
-            }
+            {"name": "conversationId", "value": "={{ $json.conversationId }}"},
+            {"name": "reply", "value": "={{ $json.reply }}"}
           ]
         },
         "options": {}
@@ -108,31 +102,70 @@
       "typeVersion": 4.2,
       "position": [1088, 304],
       "continueOnFail": true
+    },
+    {
+      "id": "c3d4e5f6-0001-4000-8000-300000000001",
+      "name": "Get User Info",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [640, 680],
+      "parameters": {
+        "description": "Look up the Azure AD profile (job title, department, manager) of the presale requester by their Azure AD Object ID. Call this once at the start of intake to understand the requester's organizational context.",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "4EaRi9fClrf4Ay8n",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ $fromAI('aadObjectId', 'The Azure AD Object ID of the requester — take it from the [Context] aadObjectId= line at the start of the message', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "ignoreCase": false,
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      }
     }
   ],
   "connections": {
     "Teams Bot Webhook": {
-      "main": [[{ "node": "Prepare Input", "type": "main", "index": 0 }]]
+      "main": [[{"node": "Prepare Input", "type": "main", "index": 0}]]
     },
     "Prepare Input": {
-      "main": [[{ "node": "Presale Agent", "type": "main", "index": 0 }]]
+      "main": [[{"node": "Presale Agent", "type": "main", "index": 0}]]
     },
     "Claude Sonnet 4.6": {
-      "ai_languageModel": [[{ "node": "Presale Agent", "type": "ai_languageModel", "index": 0 }]]
+      "ai_languageModel": [[{"node": "Presale Agent", "type": "ai_languageModel", "index": 0}]]
     },
     "Window Buffer Memory": {
-      "ai_memory": [[{ "node": "Presale Agent", "type": "ai_memory", "index": 0 }]]
+      "ai_memory": [[{"node": "Presale Agent", "type": "ai_memory", "index": 0}]]
     },
     "Presale Agent": {
-      "main": [[{ "node": "Format Reply", "type": "main", "index": 0 }]]
+      "main": [[{"node": "Format Reply", "type": "main", "index": 0}]]
     },
     "Format Reply": {
-      "main": [[{ "node": "Teams Callback", "type": "main", "index": 0 }]]
+      "main": [[{"node": "Teams Callback", "type": "main", "index": 0}]]
+    },
+    "Get User Info": {
+      "ai_tool": [[{"node": "Presale Agent", "type": "ai_tool", "index": 0}]]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
-  },
-  "versionId": "d704973f-434a-4301-b9f8-ae2143f32839"
+  }
 }
