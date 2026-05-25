@@ -10,11 +10,16 @@ Manages the n8n workflow files that power the Presale Agent pipeline.
 
 ## Rules
 
-- **Always use n8n MCP tools** (`n8n_*`) for ALL workflow management: create, update, activate, deactivate, delete, list, validate, and execute. This is mandatory — never skip MCP in favour of the CLI, UI, or direct JSON edits unless the MCP tool explicitly returns an error or is unreachable. Fall back to `npx n8nac push` only as a last resort when the MCP connection is confirmed unavailable.
+- **Always use `n8n-cli`** for ALL workflow management: create, update, activate, deactivate, delete, list, validate. Never use the n8n UI, REST API directly, or npx n8nac.
+- **Deploy command** — `n8n-cli workflows update <id> --file <path> --yes --skip-validation`. Use `--skip-validation` because n8n-cli does not know LangChain node types locally.
+- **Create command** — `n8n-cli workflows import <path>` for new workflows. Note: assign the returned ID back into the JSON `id` field.
+- **Activate after creation** — newly created workflows are inactive by default. Always activate the workflow immediately after creation using `n8n_update_partial_workflow` with `activateWorkflow` operation (or `n8n-cli workflows activate <id>`). Never leave a newly created workflow inactive.
+- **Source JSON must not contain read-only fields** — never include `active`, `versionId`, `meta`, `tags`, or `settings.binaryMode` in workflow JSON files. The API rejects them on write.
+- **Auth** — credentials are stored in `~/.n8nrc.json` (set once via `n8n-cli auth login -H http://localhost:5678 -k <key>`). API key lives in `orchestrator/n8n/.env` as `N8N_API_KEY`.
 - **Node IDs** — every node must have a unique UUID (`xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx`). Never reuse or increment IDs from other nodes.
 - **typeVersion** — always use the latest stable typeVersion for each node type. Do not downgrade without a reason.
 - **AI port connections** — Claude model nodes connect via `"ai_languageModel"` port; memory nodes via `"ai_memory"` port; tool nodes via `"ai_tool"` port. Never wire these through `"main"`.
-- **Credential references** — use the existing credential IDs: Anthropic → `GQ2oI4MTfb66gp8c` ("Anthropic account"). After container recreation, credential IDs reset — recreate credentials and update all node references.
+- **Credential references** — use the existing credential IDs from the running n8n instance. After container recreation, credential IDs reset — recreate credentials and update all node references. Current Anthropic credential: `tveGybvizLkoc6QO` ("Anthropic account").
 - **Webhook path** — the main webhook path is `presale-agent`. Do not change it without updating `N8N_WEBHOOK_URL` in the bot's `.env`.
 - **`responseMode: onReceived`** — the webhook must respond immediately; all processing happens asynchronously with a proactive callback to the bot.
 - **`continueOnFail: true`** on the Teams Callback node — a failed callback must not crash the workflow.
@@ -26,6 +31,6 @@ Manages the n8n workflow files that power the Presale Agent pipeline.
   - **Formatting**: Use `kebab-case` for workflow file names (e.g., `get-user-info-workflow.json`) and Title/Sentence case for n8n UI display names.
   - **Modularity**: Clearly distinguish main workflows and sub-workflows (e.g., `Main - Presale Agent Processing`, `Sub - Get User Info`).
 - **Workflow IDs & Version Control**:
-  - **Stable IDs**: The `id` field in exported workflow JSONs must remain unchanged to prevent creating duplicates upon re-import.
+  - **Stable IDs**: The `id` field in workflow JSONs must remain unchanged to prevent creating duplicates upon re-import.
   - **Sub-workflow Dependencies**: Keep sub-workflow IDs strictly identical across environments to ensure "Execute Workflow" node linkages do not break.
-  - **UUIDv4 Generation**: When creating new workflows via code or AI, always generate a standard UUID v4 for the workflow ID.
+  - **UUIDv4 Generation**: When creating new workflows, always generate a standard UUID v4 for the workflow `id`.
