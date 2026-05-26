@@ -73,8 +73,8 @@
         "operation": "create",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "list": {
           "__rl": true,
@@ -111,8 +111,8 @@
         "operation": "get",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "list": {
           "__rl": true,
@@ -149,8 +149,8 @@
         "operation": "getAll",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "list": {
           "__rl": true,
@@ -185,8 +185,8 @@
         "operation": "update",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "list": {
           "__rl": true,
@@ -223,8 +223,8 @@
         "operation": "upsert",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "list": {
           "__rl": true,
@@ -261,8 +261,8 @@
         "operation": "delete",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "list": {
           "__rl": true,
@@ -297,8 +297,8 @@
         "operation": "upload",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "folder": {
           "__rl": true,
@@ -330,8 +330,8 @@
         "operation": "download",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "folder": {
           "__rl": true,
@@ -366,8 +366,8 @@
         "operation": "update",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site ID from Microsoft Graph API') }}",
-          "mode": "id"
+          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "mode": "url"
         },
         "folder": {
           "__rl": true,

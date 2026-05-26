@@ -158,7 +158,7 @@ AZURE_GRAPH_CLIENT_SECRET=<value>
 AZURE_GRAPH_TENANT_ID=0d9ed809-b1ed-46bd-b3e3-5ccb093ae299
 
 # SharePoint identifiers (resolve via Graph after creating the site — see sharepoint-setup.md)
-SHAREPOINT_SITE_ID=<value>
+SHAREPOINT_SITE_URL=<value>
 SHAREPOINT_CONVERSATIONS_LIST_ID=<value>
 SHAREPOINT_TURNS_LIST_ID=<value>
 SHAREPOINT_DRIVE_ID=<value>
