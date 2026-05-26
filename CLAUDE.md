@@ -124,7 +124,7 @@ devtunnel port create tidy-river-mfkpvdl.euw -p 3978
 # Set messaging endpoint (URL is persistent — run once)
 az account set --subscription 46e73b37-b5cd-40a3-8643-a9218e9d97c0
 az bot update --resource-group presale-agent-rg --name presale-bot \
-  --endpoint "https://tidy-river-mfkpvdl.euw-3978.devtunnels.ms/api/messages"
+  --endpoint "https://tidy-river-mfkpvdl-3978.euw.devtunnels.ms/api/messages"
 ```
 
 > **Note:** Docker is available. n8n runs via `orchestrator/n8n/docker-compose.yml`.
@@ -222,7 +222,7 @@ n8n processes asynchronously, then POSTs to `callbackUrl` with `{ conversationId
 | App Registration | `Presale Bot` — App ID `44c69ed7-637b-48ec-922e-a5eacbfcb938` |
 | Service Principal | `fd588b93-82ef-4b9d-8c90-4bf1cd6ec5fb` (created manually) |
 | Teams Channel | Enabled |
-| devtunnel URL | `https://tidy-river-mfkpvdl.euw-3978.devtunnels.ms` (persistent) |
+| devtunnel URL | `https://tidy-river-mfkpvdl-3978.euw.devtunnels.ms` (persistent) |
 
 ## SharePoint State Store
 
@@ -283,6 +283,7 @@ Teams → Apps → Manage your apps → Upload a custom app → select the zip.
 - **Proactive callback unreachable from Docker** — n8n container cannot reach `localhost:3978`; use `PROACTIVE_CALLBACK_URL=http://host.docker.internal:3978/proactive`
 - **Credential ID reset on container recreation** — fresh n8n DB assigns new credential IDs; must recreate "Anthropic account" + "Microsoft Graph - Presale Agent" credentials and update workflow node references
 - **OAuth token exchange fails with ENETUNREACH (IPv6)** — Docker Desktop on Windows tries IPv6 for `login.microsoftonline.com` which is unreachable. Fix: add `extra_hosts` to `docker-compose.yml` with a known IPv4 of `login.microsoftonline.com` (e.g. `40.126.31.71`). `NODE_OPTIONS=--dns-result-order=ipv4first` and `sysctls` do NOT work on Docker Desktop/Windows.
+- **Bot silently drops all Teams messages** — caused by `MICROSOFT_APP_TYPE=MultiTenant` (must be `SingleTenant`) and missing `MICROSOFT_APP_TENANT_ID` in `microsoft-teams-bot/.env`. BotFramework rejects incoming tokens without the correct app type + tenant ID, so n8n is never called. Refer to `.env.example` for the correct template.
 
 ## Architecture Decisions
 
