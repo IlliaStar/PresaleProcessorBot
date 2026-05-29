@@ -87,35 +87,6 @@
     },
     {
       "parameters": {
-        "toolDescription": "Retrieve the direct manager of a user from Azure Active Directory. Provide the user's AAD object ID or user principal name. Returns manager's id, displayName, mail, and jobTitle.",
-        "method": "GET",
-        "url": "https://graph.microsoft.com/v1.0/users/{userId}/manager?$select=id,displayName,mail,jobTitle",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "oAuth2Api",
-        "placeholderDefinitions": {
-          "values": [
-            {
-              "name": "userId",
-              "description": "The user's AAD object ID (GUID) or user principal name (e.g. alice@contoso.com)",
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "id": "e6f7a8b9-c0d1-4423-9f5a-6b7c8d9e0f1a",
-      "name": "Get User Manager",
-      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
-      "typeVersion": 1.1,
-      "position": [288, 624],
-      "credentials": {
-        "oAuth2Api": {
-          "id": "hYtwF50yLhOfSXDi",
-          "name": "Microsoft Graph API - t8lxc"
-        }
-      }
-    },
-    {
-      "parameters": {
         "toolDescription": "Search Azure Active Directory users using an OData $filter expression. Examples: \"startswith(displayName,'John')\", \"mail eq 'alice@contoso.com'\", \"department eq 'Engineering'\". Returns up to the specified limit of matching users.",
         "method": "GET",
         "url": "https://graph.microsoft.com/v1.0/users?$filter={filter}&$select=id,displayName,mail,jobTitle,department&$top={top}",
@@ -230,9 +201,6 @@
       "ai_languageModel": [[{"node": "Graph API AI Agent", "type": "ai_languageModel", "index": 0}]]
     },
     "Get User": {
-      "ai_tool": [[{"node": "Graph API AI Agent", "type": "ai_tool", "index": 0}]]
-    },
-    "Get User Manager": {
       "ai_tool": [[{"node": "Graph API AI Agent", "type": "ai_tool", "index": 0}]]
     },
     "Search Users": {

@@ -1,11 +1,11 @@
 {
-  "runAt": "2026-05-29T13:55:14.690Z",
+  "runAt": "2026-05-29T14:49:34.301Z",
   "workflowFile": "orchestrator\\n8n\\workflows\\graph-api-agent-workflow.json",
   "fixtureFile": "orchestrator\\n8n\\fixtures\\graph-api-agent-trigger.json",
-  "executionId": "80",
+  "executionId": "109",
   "status": "success",
-  "startedAt": "2026-05-29T13:55:09.804Z",
-  "stoppedAt": "2026-05-29T13:55:14.181Z",
+  "startedAt": "2026-05-29T14:49:11.540Z",
+  "stoppedAt": "2026-05-29T14:49:32.492Z",
   "data": {
     "version": 1,
     "startData": {},
@@ -13,19 +13,19 @@
       "runData": {
         "Execute Workflow Trigger": [
           {
-            "startTime": 1780062909816,
+            "startTime": 1780066151554,
             "executionIndex": 0,
             "source": [],
             "hints": [],
             "executionTime": 0,
             "metadata": {
               "parentExecution": {
-                "executionId": "79",
-                "workflowId": "ra3VxbcRrbWtfHCg",
+                "executionId": "108",
+                "workflowId": "7lMvo3OGgSKd2301",
                 "shouldResume": true,
                 "executionContext": {
                   "version": 1,
-                  "establishedAt": 1780062909483,
+                  "establishedAt": 1780066151480,
                   "source": "webhook",
                   "redaction": {
                     "version": 1,
@@ -44,8 +44,8 @@
                 [
                   {
                     "json": {
-                      "query": "List all SharePoint sites with their names and URLs",
-                      "conversationId": "test-conv-tdd-001",
+                      "query": "List all SharePoint sites from the t8lxc.sharepoint.com domain",
+                      "conversationId": "test-conv-graph-001",
                       "userName": "TDD Test User",
                       "aadObjectId": "00000000-0000-0000-0000-000000000001"
                     },
@@ -61,8 +61,8 @@
         ],
         "Claude Haiku 4.5": [
           {
-            "startTime": 1780062909849,
-            "executionTime": 1532,
+            "startTime": 1780066151581,
+            "executionTime": 1483,
             "executionIndex": 2,
             "executionStatus": "success",
             "source": [
@@ -80,16 +80,16 @@
                         "generations": [
                           [
                             {
-                              "text": "I'll retrieve all SharePoint sites available in your organization.{\"graphPath\": \"v1.0/sites\"}",
+                              "text": "I'll retrieve all SharePoint sites from the t8lxc.sharepoint.com domain using the Microsoft Graph API.{\"graphPath\": \"v1.0/sites?search=\"}",
                               "generationInfo": {}
                             }
                           ]
                         ]
                       },
                       "tokenUsageEstimate": {
-                        "completionTokens": 22,
-                        "promptTokens": 606,
-                        "totalTokens": 628
+                        "completionTokens": 36,
+                        "promptTokens": 611,
+                        "totalTokens": 647
                       }
                     }
                   }
@@ -102,9 +102,9 @@
                   {
                     "json": {
                       "messages": [
-                        "System: You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\n\nYou have the following tools available:\n\nUSER OPERATIONS:\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\n\nSITE OPERATIONS:\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\n\nGENERIC OPERATIONS:\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\n\nGuidelines:\n- Use the AAD object ID directly with Get User when available — it is the most reliable lookup key.\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\n- On errors, report the HTTP status code, Graph error code, and error message.\n\nRESPONSE FORMAT:\nAlways output a single raw JSON object — no markdown, no code fences, no prose outside the JSON.\n\nOn success:\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\n\nOn error (Graph API call or tool failure):\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}\nHuman: conversationId=test-conv-tdd-001, userName=TDD Test User, aadObjectId=00000000-0000-0000-0000-000000000001\n\nTask: List all SharePoint sites with their names and URLs"
+                        "System: You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\n\nYou have the following tools available:\n\nUSER OPERATIONS:\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\n\nSITE OPERATIONS:\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\n\nGENERIC OPERATIONS:\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\n\nGuidelines:\n- Use the AAD object ID directly with Get User when available — it is the most reliable lookup key.\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\n- On errors, report the HTTP status code, Graph error code, and error message.\n\nRESPONSE FORMAT:\nAlways output a single raw JSON object — no markdown, no code fences, no prose outside the JSON.\n\nOn success:\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\n\nOn error (Graph API call or tool failure):\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}\nHuman: conversationId=test-conv-graph-001, userName=TDD Test User, aadObjectId=00000000-0000-0000-0000-000000000001\n\nTask: List all SharePoint sites from the t8lxc.sharepoint.com domain"
                       ],
-                      "estimatedTokens": 606,
+                      "estimatedTokens": 611,
                       "options": {
                         "anthropic_api_key": {
                           "lc": 1,
@@ -143,8 +143,8 @@
             }
           },
           {
-            "startTime": 1780062912059,
-            "executionTime": 2040,
+            "startTime": 1780066154895,
+            "executionTime": 17582,
             "executionIndex": 4,
             "executionStatus": "success",
             "source": [
@@ -162,16 +162,16 @@
                         "generations": [
                           [
                             {
-                              "text": "```json\n{\n  \"summary\": \"No SharePoint sites found in the organization.\",\n  \"data_type\": \"sharepoint_site_list\",\n  \"payload\": {\n    \"sites\": [],\n    \"count\": 0\n  },\n  \"extracted_facts\": [],\n  \"next_steps\": [\n    \"Verify that SharePoint sites exist and the user has permissions to access them.\",\n    \"Check if sites need to be explicitly added or if the tenant has SharePoint enabled.\"\n  ]\n}\n```",
+                              "text": "```json\n{\n  \"summary\": \"Retrieved 14 SharePoint sites from the t8lxc.sharepoint.com domain.\",\n  \"data_type\": \"sharepoint_site_list\",\n  \"payload\": [\n    {\n      \"id\": \"t8lxc.sharepoint.com,6f160c0f-3367-4c07-b77c-e2b84ee93453,c93264b0-af45-45a7-aeea-c7fb57d128e9\",\n      \"name\": \"PresaleAgentBot\",\n      \"displayName\": \"Presale Agent Bot\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/PresaleAgentBot\",\n      \"createdDateTime\": \"2026-05-19T12:21:17Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,a349bc93-c418-47ca-afe1-aa5e08e1d6c5,62186d63-ce94-4c0b-adf7-c0a01e4260e5\",\n      \"name\": \"LindaBot\",\n      \"displayName\": \"Linda Bot\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/LindaBot\",\n      \"createdDateTime\": \"2026-02-20T08:54:48Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,b0f33f70-b41b-4696-8973-922620fca0d7,bca94853-2dac-4f71-ac2a-1fe292980143\",\n      \"name\": \"LiveDashboard\",\n      \"displayName\": \"Live Dashboard\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/LiveDashboard\",\n      \"createdDateTime\": \"2026-01-21T10:47:06Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,437d5d49-8463-4492-887b-10d2ad687ceb,908d2c33-9b4f-48b8-852f-89207d8d92e7\",\n      \"name\": \"icsi2\",\n      \"displayName\": \"icsi2\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/icsi2\",\n      \"createdDateTime\": \"2025-05-06T10:38:15Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,a9a83815-268c-4e8e-9671-2b45305b7087,f57af05f-08c5-4da9-a1c6-f75fc7073f86\",\n      \"name\": \"icsi\",\n      \"displayName\": \"icsi\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/icsi\",\n      \"createdDateTime\": \"2025-04-29T12:34:03Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,da0960e3-cf37-443c-8721-542a74dc390d,8a7f5f4d-4a09-4423-beca-05ae066a2bc4\",\n      \"name\": \"appcatalog\",\n      \"displayName\": \"Apps\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/appcatalog\",\n      \"createdDateTime\": \"2025-04-29T14:55:50Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,dd2701fb-a634-4aef-8602-4260cfe1772e,cd4d3648-77df-43fa-ac16-7b87ed86ba90\",\n      \"name\": \"t8lxc.sharepoint.com\",\n      \"displayName\": \"Communication site\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com\",\n      \"createdDateTime\": \"2025-01-16T00:43:52Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,426982d2-c999-474f-a7ec-11549a27519f,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"allcompany\",\n      \"displayName\": \"All Company\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/allcompany\",\n      \"createdDateTime\": \"2025-01-16T00:47:25Z\",\n      \"description\": \"This is the default group for everyone in the network\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,db15a5c6-6595-4c3f-8358-af6cd596b964,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"SalesandMarketing\",\n      \"displayName\": \"Sales and Marketing\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/SalesandMarketing\",\n      \"createdDateTime\": \"2025-01-16T16:05:24Z\",\n      \"description\": \"Description of Sales and Marketing\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,c5befe61-62d3-49f4-b725-f67b452e4324,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"U.S.Sales\",\n      \"displayName\": \"U.S. Sales\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/U.S.Sales\",\n      \"createdDateTime\": \"2025-01-16T16:06:16Z\",\n      \"description\": \"Description of U.S. Sales\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,41e8222a-f77a-4feb-b84d-23663eab0d2e,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"Retail\",\n      \"displayName\": \"Retail\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/Retail\",\n      \"createdDateTime\": \"2025-01-16T16:04:38Z\",\n      \"description\": \"Description of Retail\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,df7ad6fc-7c86-42c6-bba7-647a34c66557,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"Mark8ProjectTeam\",\n      \"displayName\": \"Mark 8 Project Team\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/Mark8ProjectTeam\",\n      \"createdDateTime\": \"2025-01-16T16:02:40Z\",\n      \"description\": \"Welcome to the team that we've assembled to create the Mark 8.\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,124aac49-a70c-4071-98a4-e049e92e0056,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"DigitalInitiativePublicRelations\",\n      \"displayName\": \"Digital Initiative Public Relations\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/DigitalInitiativePublicRelations\",\n      \"createdDateTime\": \"2025-01-16T16:01:26Z\",\n      \"description\": \"Description of Digital Initiative Public Relations\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,5cd6d300-7662-48c8-8a70-f5bc4c1def03,6494bcb6-5d1a-491e-8c35-6a2d7762dd23\",\n      \"name\": \"contentTypeHub\",\n      \"displayName\": \"Team Site\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/contentTypeHub\",\n      \"createdDateTime\": \"2025-01-16T00:46:41Z\"\n    }\n  ],\n  \"extracted_facts\": [\n    {\n      \"fact_id\": \"f1\",\n      \"category\": \"access\",\n      \"content\": \"14 SharePoint sites are available on the t8lxc.sharepoint.com domain.\"\n    },\n    {\n      \"fact_id\": \"f2\",\n      \"category\": \"access\",\n      \"content\": \"Key bot/automation sites: Presale Agent Bot, Linda Bot, Live Dashboard.\"\n    },\n    {\n      \"fact_id\": \"f3\",\n      \"category\": \"access\",\n      \"content\": \"Organizational sites include: All Company, Sales and Marketing, U.S. Sales, Retail, Mark 8 Project Team, and Digital Initiative Public Relations.\"\n    }\n  ],\n  \"next_steps\": []\n}\n```",
                               "generationInfo": {}
                             }
                           ]
                         ]
                       },
                       "tokenUsageEstimate": {
-                        "completionTokens": 102,
-                        "promptTokens": 695,
-                        "totalTokens": 797
+                        "completionTokens": 2021,
+                        "promptTokens": 2765,
+                        "totalTokens": 4786
                       }
                     }
                   }
@@ -184,9 +184,9 @@
                   {
                     "json": {
                       "messages": [
-                        "System: You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\n\nYou have the following tools available:\n\nUSER OPERATIONS:\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\n\nSITE OPERATIONS:\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\n\nGENERIC OPERATIONS:\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\n\nGuidelines:\n- Use the AAD object ID directly with Get User when available — it is the most reliable lookup key.\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\n- On errors, report the HTTP status code, Graph error code, and error message.\n\nRESPONSE FORMAT:\nAlways output a single raw JSON object — no markdown, no code fences, no prose outside the JSON.\n\nOn success:\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\n\nOn error (Graph API call or tool failure):\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}\nHuman: conversationId=test-conv-tdd-001, userName=TDD Test User, aadObjectId=00000000-0000-0000-0000-000000000001\n\nTask: List all SharePoint sites with their names and URLs\nAI: I'll retrieve all SharePoint sites available in your organization.[tool_use][{\"name\":\"Generic_Graph_GET\",\"args\":{\"graphPath\":\"v1.0/sites\"},\"id\":\"toolu_011koHWYvfW1K8nrFdU5sTLV\",\"type\":\"tool_call\"}]\nTool: {\"@odata.context\":\"https://graph.microsoft.com/v1.0/$metadata#sites\",\"value\":[]}"
+                        "System: You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\n\nYou have the following tools available:\n\nUSER OPERATIONS:\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\n\nSITE OPERATIONS:\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\n\nGENERIC OPERATIONS:\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\n\nGuidelines:\n- Use the AAD object ID directly with Get User when available — it is the most reliable lookup key.\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\n- On errors, report the HTTP status code, Graph error code, and error message.\n\nRESPONSE FORMAT:\nAlways output a single raw JSON object — no markdown, no code fences, no prose outside the JSON.\n\nOn success:\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\n\nOn error (Graph API call or tool failure):\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}\nHuman: conversationId=test-conv-graph-001, userName=TDD Test User, aadObjectId=00000000-0000-0000-0000-000000000001\n\nTask: List all SharePoint sites from the t8lxc.sharepoint.com domain\nAI: I'll retrieve all SharePoint sites from the t8lxc.sharepoint.com domain using the Microsoft Graph API.[tool_use][{\"name\":\"Generic_Graph_GET\",\"args\":{\"graphPath\":\"v1.0/sites?search=\"},\"id\":\"toolu_017jLutDZ6pFuWCvVQyDPZUW\",\"type\":\"tool_call\"}]\nTool: {\"@odata.context\":\"https://graph.microsoft.com/v1.0/$metadata#sites\",\"value\":[{\"createdDateTime\":\"2026-05-19T12:21:17Z\",\"id\":\"t8lxc.sharepoint.com,6f160c0f-3367-4c07-b77c-e2b84ee93453,c93264b0-af45-45a7-aeea-c7fb57d128e9\",\"lastModifiedDateTime\":\"2026-05-19T12:21:27Z\",\"name\":\"PresaleAgentBot\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/PresaleAgentBot\",\"displayName\":\"Presale Agent Bot\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2026-02-20T08:54:48Z\",\"id\":\"t8lxc.sharepoint.com,a349bc93-c418-47ca-afe1-aa5e08e1d6c5,62186d63-ce94-4c0b-adf7-c0a01e4260e5\",\"lastModifiedDateTime\":\"2026-02-20T08:55:00Z\",\"name\":\"LindaBot\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/LindaBot\",\"displayName\":\"Linda Bot\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2026-01-21T10:47:06Z\",\"id\":\"t8lxc.sharepoint.com,b0f33f70-b41b-4696-8973-922620fca0d7,bca94853-2dac-4f71-ac2a-1fe292980143\",\"lastModifiedDateTime\":\"2026-01-21T10:47:16Z\",\"name\":\"LiveDashboard\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/LiveDashboard\",\"displayName\":\"Live Dashboard\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-05-06T10:38:15Z\",\"id\":\"t8lxc.sharepoint.com,437d5d49-8463-4492-887b-10d2ad687ceb,908d2c33-9b4f-48b8-852f-89207d8d92e7\",\"lastModifiedDateTime\":\"2025-08-07T15:30:30Z\",\"name\":\"icsi2\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/icsi2\",\"displayName\":\"icsi2\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-04-29T12:34:03Z\",\"id\":\"t8lxc.sharepoint.com,a9a83815-268c-4e8e-9671-2b45305b7087,f57af05f-08c5-4da9-a1c6-f75fc7073f86\",\"lastModifiedDateTime\":\"2025-04-30T08:08:54Z\",\"name\":\"icsi\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/icsi\",\"displayName\":\"icsi\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-04-29T14:55:50Z\",\"id\":\"t8lxc.sharepoint.com,da0960e3-cf37-443c-8721-542a74dc390d,8a7f5f4d-4a09-4423-beca-05ae066a2bc4\",\"lastModifiedDateTime\":\"2025-04-21T23:05:11Z\",\"name\":\"appcatalog\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/appcatalog\",\"displayName\":\"Apps\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T00:43:52Z\",\"id\":\"t8lxc.sharepoint.com,dd2701fb-a634-4aef-8602-4260cfe1772e,cd4d3648-77df-43fa-ac16-7b87ed86ba90\",\"lastModifiedDateTime\":\"2024-12-15T00:41:07Z\",\"name\":\"t8lxc.sharepoint.com\",\"webUrl\":\"https://t8lxc.sharepoint.com\",\"displayName\":\"Communication site\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T00:47:25Z\",\"description\":\"This is the default group for everyone in the network\",\"id\":\"t8lxc.sharepoint.com,426982d2-c999-474f-a7ec-11549a27519f,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"allcompany\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/allcompany\",\"displayName\":\"All Company\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:05:24Z\",\"description\":\"Description of Sales and Marketing\",\"id\":\"t8lxc.sharepoint.com,db15a5c6-6595-4c3f-8358-af6cd596b964,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"SalesandMarketing\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/SalesandMarketing\",\"displayName\":\"Sales and Marketing\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:06:16Z\",\"description\":\"Description of U.S. Sales\",\"id\":\"t8lxc.sharepoint.com,c5befe61-62d3-49f4-b725-f67b452e4324,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"U.S.Sales\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/U.S.Sales\",\"displayName\":\"U.S. Sales\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:04:38Z\",\"description\":\"Description of Retail\",\"id\":\"t8lxc.sharepoint.com,41e8222a-f77a-4feb-b84d-23663eab0d2e,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"Retail\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/Retail\",\"displayName\":\"Retail\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:02:40Z\",\"description\":\"Welcome to the team that we've assembled to create the Mark 8.\",\"id\":\"t8lxc.sharepoint.com,df7ad6fc-7c86-42c6-bba7-647a34c66557,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"Mark8ProjectTeam\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/Mark8ProjectTeam\",\"displayName\":\"Mark 8 Project Team\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:01:26Z\",\"description\":\"Description of Digital Initiative Public Relations\",\"id\":\"t8lxc.sharepoint.com,124aac49-a70c-4071-98a4-e049e92e0056,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"DigitalInitiativePublicRelations\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/DigitalInitiativePublicRelations\",\"displayName\":\"Digital Initiative Public Relations\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T00:46:41Z\",\"id\":\"t8lxc.sharepoint.com,5cd6d300-7662-48c8-8a70-f5bc4c1def03,6494bcb6-5d1a-491e-8c35-6a2d7762dd23\",\"lastModifiedDateTime\":\"2024-12-15T00:38:53Z\",\"name\":\"contentTypeHub\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/contentTypeHub\",\"displayName\":\"Team Site\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}}]}"
                       ],
-                      "estimatedTokens": 695,
+                      "estimatedTokens": 2765,
                       "options": {
                         "anthropic_api_key": {
                           "lc": 1,
@@ -227,8 +227,8 @@
         ],
         "Generic Graph GET": [
           {
-            "startTime": 1780062911389,
-            "executionTime": 667,
+            "startTime": 1780066153065,
+            "executionTime": 1821,
             "executionIndex": 3,
             "executionStatus": "success",
             "source": [
@@ -242,7 +242,7 @@
                 [
                   {
                     "json": {
-                      "response": "{\"@odata.context\":\"https://graph.microsoft.com/v1.0/$metadata#sites\",\"value\":[]}"
+                      "response": "{\"@odata.context\":\"https://graph.microsoft.com/v1.0/$metadata#sites\",\"value\":[{\"createdDateTime\":\"2026-05-19T12:21:17Z\",\"id\":\"t8lxc.sharepoint.com,6f160c0f-3367-4c07-b77c-e2b84ee93453,c93264b0-af45-45a7-aeea-c7fb57d128e9\",\"lastModifiedDateTime\":\"2026-05-19T12:21:27Z\",\"name\":\"PresaleAgentBot\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/PresaleAgentBot\",\"displayName\":\"Presale Agent Bot\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2026-02-20T08:54:48Z\",\"id\":\"t8lxc.sharepoint.com,a349bc93-c418-47ca-afe1-aa5e08e1d6c5,62186d63-ce94-4c0b-adf7-c0a01e4260e5\",\"lastModifiedDateTime\":\"2026-02-20T08:55:00Z\",\"name\":\"LindaBot\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/LindaBot\",\"displayName\":\"Linda Bot\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2026-01-21T10:47:06Z\",\"id\":\"t8lxc.sharepoint.com,b0f33f70-b41b-4696-8973-922620fca0d7,bca94853-2dac-4f71-ac2a-1fe292980143\",\"lastModifiedDateTime\":\"2026-01-21T10:47:16Z\",\"name\":\"LiveDashboard\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/LiveDashboard\",\"displayName\":\"Live Dashboard\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-05-06T10:38:15Z\",\"id\":\"t8lxc.sharepoint.com,437d5d49-8463-4492-887b-10d2ad687ceb,908d2c33-9b4f-48b8-852f-89207d8d92e7\",\"lastModifiedDateTime\":\"2025-08-07T15:30:30Z\",\"name\":\"icsi2\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/icsi2\",\"displayName\":\"icsi2\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-04-29T12:34:03Z\",\"id\":\"t8lxc.sharepoint.com,a9a83815-268c-4e8e-9671-2b45305b7087,f57af05f-08c5-4da9-a1c6-f75fc7073f86\",\"lastModifiedDateTime\":\"2025-04-30T08:08:54Z\",\"name\":\"icsi\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/icsi\",\"displayName\":\"icsi\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-04-29T14:55:50Z\",\"id\":\"t8lxc.sharepoint.com,da0960e3-cf37-443c-8721-542a74dc390d,8a7f5f4d-4a09-4423-beca-05ae066a2bc4\",\"lastModifiedDateTime\":\"2025-04-21T23:05:11Z\",\"name\":\"appcatalog\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/appcatalog\",\"displayName\":\"Apps\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T00:43:52Z\",\"id\":\"t8lxc.sharepoint.com,dd2701fb-a634-4aef-8602-4260cfe1772e,cd4d3648-77df-43fa-ac16-7b87ed86ba90\",\"lastModifiedDateTime\":\"2024-12-15T00:41:07Z\",\"name\":\"t8lxc.sharepoint.com\",\"webUrl\":\"https://t8lxc.sharepoint.com\",\"displayName\":\"Communication site\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T00:47:25Z\",\"description\":\"This is the default group for everyone in the network\",\"id\":\"t8lxc.sharepoint.com,426982d2-c999-474f-a7ec-11549a27519f,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"allcompany\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/allcompany\",\"displayName\":\"All Company\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:05:24Z\",\"description\":\"Description of Sales and Marketing\",\"id\":\"t8lxc.sharepoint.com,db15a5c6-6595-4c3f-8358-af6cd596b964,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"SalesandMarketing\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/SalesandMarketing\",\"displayName\":\"Sales and Marketing\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:06:16Z\",\"description\":\"Description of U.S. Sales\",\"id\":\"t8lxc.sharepoint.com,c5befe61-62d3-49f4-b725-f67b452e4324,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"U.S.Sales\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/U.S.Sales\",\"displayName\":\"U.S. Sales\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:04:38Z\",\"description\":\"Description of Retail\",\"id\":\"t8lxc.sharepoint.com,41e8222a-f77a-4feb-b84d-23663eab0d2e,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"Retail\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/Retail\",\"displayName\":\"Retail\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:02:40Z\",\"description\":\"Welcome to the team that we've assembled to create the Mark 8.\",\"id\":\"t8lxc.sharepoint.com,df7ad6fc-7c86-42c6-bba7-647a34c66557,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"Mark8ProjectTeam\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/Mark8ProjectTeam\",\"displayName\":\"Mark 8 Project Team\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T16:01:26Z\",\"description\":\"Description of Digital Initiative Public Relations\",\"id\":\"t8lxc.sharepoint.com,124aac49-a70c-4071-98a4-e049e92e0056,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\"lastModifiedDateTime\":\"2024-12-15T00:39:58Z\",\"name\":\"DigitalInitiativePublicRelations\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/DigitalInitiativePublicRelations\",\"displayName\":\"Digital Initiative Public Relations\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}},{\"createdDateTime\":\"2025-01-16T00:46:41Z\",\"id\":\"t8lxc.sharepoint.com,5cd6d300-7662-48c8-8a70-f5bc4c1def03,6494bcb6-5d1a-491e-8c35-6a2d7762dd23\",\"lastModifiedDateTime\":\"2024-12-15T00:38:53Z\",\"name\":\"contentTypeHub\",\"webUrl\":\"https://t8lxc.sharepoint.com/sites/contentTypeHub\",\"displayName\":\"Team Site\",\"root\":{},\"siteCollection\":{\"hostname\":\"t8lxc.sharepoint.com\"}}]}"
                     }
                   }
                 ]
@@ -254,7 +254,7 @@
                   {
                     "json": {
                       "query": {
-                        "graphPath": "v1.0/sites"
+                        "graphPath": "v1.0/sites?search="
                       }
                     }
                   }
@@ -273,7 +273,7 @@
         ],
         "Graph API AI Agent": [
           {
-            "startTime": 1780062909816,
+            "startTime": 1780066151555,
             "executionIndex": 1,
             "source": [
               {
@@ -283,14 +283,14 @@
               }
             ],
             "hints": [],
-            "executionTime": 4287,
+            "executionTime": 20924,
             "executionStatus": "success",
             "data": {
               "main": [
                 [
                   {
                     "json": {
-                      "output": "```json\n{\n  \"summary\": \"No SharePoint sites found in the organization.\",\n  \"data_type\": \"sharepoint_site_list\",\n  \"payload\": {\n    \"sites\": [],\n    \"count\": 0\n  },\n  \"extracted_facts\": [],\n  \"next_steps\": [\n    \"Verify that SharePoint sites exist and the user has permissions to access them.\",\n    \"Check if sites need to be explicitly added or if the tenant has SharePoint enabled.\"\n  ]\n}\n```"
+                      "output": "```json\n{\n  \"summary\": \"Retrieved 14 SharePoint sites from the t8lxc.sharepoint.com domain.\",\n  \"data_type\": \"sharepoint_site_list\",\n  \"payload\": [\n    {\n      \"id\": \"t8lxc.sharepoint.com,6f160c0f-3367-4c07-b77c-e2b84ee93453,c93264b0-af45-45a7-aeea-c7fb57d128e9\",\n      \"name\": \"PresaleAgentBot\",\n      \"displayName\": \"Presale Agent Bot\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/PresaleAgentBot\",\n      \"createdDateTime\": \"2026-05-19T12:21:17Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,a349bc93-c418-47ca-afe1-aa5e08e1d6c5,62186d63-ce94-4c0b-adf7-c0a01e4260e5\",\n      \"name\": \"LindaBot\",\n      \"displayName\": \"Linda Bot\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/LindaBot\",\n      \"createdDateTime\": \"2026-02-20T08:54:48Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,b0f33f70-b41b-4696-8973-922620fca0d7,bca94853-2dac-4f71-ac2a-1fe292980143\",\n      \"name\": \"LiveDashboard\",\n      \"displayName\": \"Live Dashboard\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/LiveDashboard\",\n      \"createdDateTime\": \"2026-01-21T10:47:06Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,437d5d49-8463-4492-887b-10d2ad687ceb,908d2c33-9b4f-48b8-852f-89207d8d92e7\",\n      \"name\": \"icsi2\",\n      \"displayName\": \"icsi2\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/icsi2\",\n      \"createdDateTime\": \"2025-05-06T10:38:15Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,a9a83815-268c-4e8e-9671-2b45305b7087,f57af05f-08c5-4da9-a1c6-f75fc7073f86\",\n      \"name\": \"icsi\",\n      \"displayName\": \"icsi\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/icsi\",\n      \"createdDateTime\": \"2025-04-29T12:34:03Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,da0960e3-cf37-443c-8721-542a74dc390d,8a7f5f4d-4a09-4423-beca-05ae066a2bc4\",\n      \"name\": \"appcatalog\",\n      \"displayName\": \"Apps\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/appcatalog\",\n      \"createdDateTime\": \"2025-04-29T14:55:50Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,dd2701fb-a634-4aef-8602-4260cfe1772e,cd4d3648-77df-43fa-ac16-7b87ed86ba90\",\n      \"name\": \"t8lxc.sharepoint.com\",\n      \"displayName\": \"Communication site\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com\",\n      \"createdDateTime\": \"2025-01-16T00:43:52Z\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,426982d2-c999-474f-a7ec-11549a27519f,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"allcompany\",\n      \"displayName\": \"All Company\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/allcompany\",\n      \"createdDateTime\": \"2025-01-16T00:47:25Z\",\n      \"description\": \"This is the default group for everyone in the network\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,db15a5c6-6595-4c3f-8358-af6cd596b964,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"SalesandMarketing\",\n      \"displayName\": \"Sales and Marketing\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/SalesandMarketing\",\n      \"createdDateTime\": \"2025-01-16T16:05:24Z\",\n      \"description\": \"Description of Sales and Marketing\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,c5befe61-62d3-49f4-b725-f67b452e4324,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"U.S.Sales\",\n      \"displayName\": \"U.S. Sales\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/U.S.Sales\",\n      \"createdDateTime\": \"2025-01-16T16:06:16Z\",\n      \"description\": \"Description of U.S. Sales\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,41e8222a-f77a-4feb-b84d-23663eab0d2e,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"Retail\",\n      \"displayName\": \"Retail\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/Retail\",\n      \"createdDateTime\": \"2025-01-16T16:04:38Z\",\n      \"description\": \"Description of Retail\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,df7ad6fc-7c86-42c6-bba7-647a34c66557,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"Mark8ProjectTeam\",\n      \"displayName\": \"Mark 8 Project Team\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/Mark8ProjectTeam\",\n      \"createdDateTime\": \"2025-01-16T16:02:40Z\",\n      \"description\": \"Welcome to the team that we've assembled to create the Mark 8.\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,124aac49-a70c-4071-98a4-e049e92e0056,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300\",\n      \"name\": \"DigitalInitiativePublicRelations\",\n      \"displayName\": \"Digital Initiative Public Relations\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/DigitalInitiativePublicRelations\",\n      \"createdDateTime\": \"2025-01-16T16:01:26Z\",\n      \"description\": \"Description of Digital Initiative Public Relations\"\n    },\n    {\n      \"id\": \"t8lxc.sharepoint.com,5cd6d300-7662-48c8-8a70-f5bc4c1def03,6494bcb6-5d1a-491e-8c35-6a2d7762dd23\",\n      \"name\": \"contentTypeHub\",\n      \"displayName\": \"Team Site\",\n      \"webUrl\": \"https://t8lxc.sharepoint.com/sites/contentTypeHub\",\n      \"createdDateTime\": \"2025-01-16T00:46:41Z\"\n    }\n  ],\n  \"extracted_facts\": [\n    {\n      \"fact_id\": \"f1\",\n      \"category\": \"access\",\n      \"content\": \"14 SharePoint sites are available on the t8lxc.sharepoint.com domain.\"\n    },\n    {\n      \"fact_id\": \"f2\",\n      \"category\": \"access\",\n      \"content\": \"Key bot/automation sites: Presale Agent Bot, Linda Bot, Live Dashboard.\"\n    },\n    {\n      \"fact_id\": \"f3\",\n      \"category\": \"access\",\n      \"content\": \"Organizational sites include: All Company, Sales and Marketing, U.S. Sales, Retail, Mark 8 Project Team, and Digital Initiative Public Relations.\"\n    }\n  ],\n  \"next_steps\": []\n}\n```"
                     },
                     "pairedItem": {
                       "item": 0
@@ -303,7 +303,7 @@
         ],
         "Format Response": [
           {
-            "startTime": 1780062914103,
+            "startTime": 1780066172479,
             "executionIndex": 5,
             "source": [
               {
@@ -313,7 +313,7 @@
               }
             ],
             "hints": [],
-            "executionTime": 78,
+            "executionTime": 13,
             "executionStatus": "success",
             "data": {
               "main": [
@@ -323,20 +323,135 @@
                       "status": "success",
                       "execution_metadata": {
                         "workflow_id": "P8NecHn00l4qArkW",
-                        "timestamp": "2026-05-29T13:55:14.179Z",
+                        "timestamp": "2026-05-29T14:49:32.491Z",
                         "source": "n8n_presale_processor"
                       },
-                      "summary": "No SharePoint sites found in the organization.",
+                      "summary": "Retrieved 14 SharePoint sites from the t8lxc.sharepoint.com domain.",
                       "data_type": "sharepoint_site_list",
-                      "payload": {
-                        "sites": [],
-                        "count": 0
-                      },
-                      "extracted_facts": [],
-                      "next_steps": [
-                        "Verify that SharePoint sites exist and the user has permissions to access them.",
-                        "Check if sites need to be explicitly added or if the tenant has SharePoint enabled."
+                      "payload": [
+                        {
+                          "id": "t8lxc.sharepoint.com,6f160c0f-3367-4c07-b77c-e2b84ee93453,c93264b0-af45-45a7-aeea-c7fb57d128e9",
+                          "name": "PresaleAgentBot",
+                          "displayName": "Presale Agent Bot",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/PresaleAgentBot",
+                          "createdDateTime": "2026-05-19T12:21:17Z"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,a349bc93-c418-47ca-afe1-aa5e08e1d6c5,62186d63-ce94-4c0b-adf7-c0a01e4260e5",
+                          "name": "LindaBot",
+                          "displayName": "Linda Bot",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/LindaBot",
+                          "createdDateTime": "2026-02-20T08:54:48Z"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,b0f33f70-b41b-4696-8973-922620fca0d7,bca94853-2dac-4f71-ac2a-1fe292980143",
+                          "name": "LiveDashboard",
+                          "displayName": "Live Dashboard",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/LiveDashboard",
+                          "createdDateTime": "2026-01-21T10:47:06Z"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,437d5d49-8463-4492-887b-10d2ad687ceb,908d2c33-9b4f-48b8-852f-89207d8d92e7",
+                          "name": "icsi2",
+                          "displayName": "icsi2",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/icsi2",
+                          "createdDateTime": "2025-05-06T10:38:15Z"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,a9a83815-268c-4e8e-9671-2b45305b7087,f57af05f-08c5-4da9-a1c6-f75fc7073f86",
+                          "name": "icsi",
+                          "displayName": "icsi",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/icsi",
+                          "createdDateTime": "2025-04-29T12:34:03Z"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,da0960e3-cf37-443c-8721-542a74dc390d,8a7f5f4d-4a09-4423-beca-05ae066a2bc4",
+                          "name": "appcatalog",
+                          "displayName": "Apps",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/appcatalog",
+                          "createdDateTime": "2025-04-29T14:55:50Z"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,dd2701fb-a634-4aef-8602-4260cfe1772e,cd4d3648-77df-43fa-ac16-7b87ed86ba90",
+                          "name": "t8lxc.sharepoint.com",
+                          "displayName": "Communication site",
+                          "webUrl": "https://t8lxc.sharepoint.com",
+                          "createdDateTime": "2025-01-16T00:43:52Z"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,426982d2-c999-474f-a7ec-11549a27519f,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300",
+                          "name": "allcompany",
+                          "displayName": "All Company",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/allcompany",
+                          "createdDateTime": "2025-01-16T00:47:25Z",
+                          "description": "This is the default group for everyone in the network"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,db15a5c6-6595-4c3f-8358-af6cd596b964,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300",
+                          "name": "SalesandMarketing",
+                          "displayName": "Sales and Marketing",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/SalesandMarketing",
+                          "createdDateTime": "2025-01-16T16:05:24Z",
+                          "description": "Description of Sales and Marketing"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,c5befe61-62d3-49f4-b725-f67b452e4324,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300",
+                          "name": "U.S.Sales",
+                          "displayName": "U.S. Sales",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/U.S.Sales",
+                          "createdDateTime": "2025-01-16T16:06:16Z",
+                          "description": "Description of U.S. Sales"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,41e8222a-f77a-4feb-b84d-23663eab0d2e,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300",
+                          "name": "Retail",
+                          "displayName": "Retail",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/Retail",
+                          "createdDateTime": "2025-01-16T16:04:38Z",
+                          "description": "Description of Retail"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,df7ad6fc-7c86-42c6-bba7-647a34c66557,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300",
+                          "name": "Mark8ProjectTeam",
+                          "displayName": "Mark 8 Project Team",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/Mark8ProjectTeam",
+                          "createdDateTime": "2025-01-16T16:02:40Z",
+                          "description": "Welcome to the team that we've assembled to create the Mark 8."
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,124aac49-a70c-4071-98a4-e049e92e0056,ac0819d9-62aa-4a0f-8ebe-a96e6eea2300",
+                          "name": "DigitalInitiativePublicRelations",
+                          "displayName": "Digital Initiative Public Relations",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/DigitalInitiativePublicRelations",
+                          "createdDateTime": "2025-01-16T16:01:26Z",
+                          "description": "Description of Digital Initiative Public Relations"
+                        },
+                        {
+                          "id": "t8lxc.sharepoint.com,5cd6d300-7662-48c8-8a70-f5bc4c1def03,6494bcb6-5d1a-491e-8c35-6a2d7762dd23",
+                          "name": "contentTypeHub",
+                          "displayName": "Team Site",
+                          "webUrl": "https://t8lxc.sharepoint.com/sites/contentTypeHub",
+                          "createdDateTime": "2025-01-16T00:46:41Z"
+                        }
                       ],
+                      "extracted_facts": [
+                        {
+                          "fact_id": "f1",
+                          "category": "access",
+                          "content": "14 SharePoint sites are available on the t8lxc.sharepoint.com domain."
+                        },
+                        {
+                          "fact_id": "f2",
+                          "category": "access",
+                          "content": "Key bot/automation sites: Presale Agent Bot, Linda Bot, Live Dashboard."
+                        },
+                        {
+                          "fact_id": "f3",
+                          "category": "access",
+                          "content": "Organizational sites include: All Company, Sales and Marketing, U.S. Sales, Retail, Mark 8 Project Team, and Digital Initiative Public Relations."
+                        }
+                      ],
+                      "next_steps": [],
                       "errors": []
                     },
                     "pairedItem": {
@@ -388,7 +503,7 @@
       "waitingExecutionSource": {},
       "runtimeData": {
         "version": 1,
-        "establishedAt": 1780062909815,
+        "establishedAt": 1780066151553,
         "source": "integrated",
         "redaction": {
           "version": 1,
@@ -398,16 +513,16 @@
           "name": "Webhook",
           "type": "n8n-nodes-base.webhook"
         },
-        "parentExecutionId": "79"
+        "parentExecutionId": "108"
       }
     },
     "parentExecution": {
-      "executionId": "79",
-      "workflowId": "ra3VxbcRrbWtfHCg",
+      "executionId": "108",
+      "workflowId": "7lMvo3OGgSKd2301",
       "shouldResume": true,
       "executionContext": {
         "version": 1,
-        "establishedAt": 1780062909483,
+        "establishedAt": 1780066151480,
         "source": "webhook",
         "redaction": {
           "version": 1,
@@ -419,6 +534,6 @@
         }
       }
     },
-    "resumeToken": "4c89d54e430378a08c8298cecbd1ec0ae8601a2b861441cdf155bf159cf9af17"
+    "resumeToken": "d84795b5e74cd147fafb1625f16957a19061099853401fb8a83024f422d3fe85"
   }
 }
