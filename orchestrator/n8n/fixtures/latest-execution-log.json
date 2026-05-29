@@ -1,0 +1,424 @@
+{
+  "runAt": "2026-05-29T13:55:14.690Z",
+  "workflowFile": "orchestrator\\n8n\\workflows\\graph-api-agent-workflow.json",
+  "fixtureFile": "orchestrator\\n8n\\fixtures\\graph-api-agent-trigger.json",
+  "executionId": "80",
+  "status": "success",
+  "startedAt": "2026-05-29T13:55:09.804Z",
+  "stoppedAt": "2026-05-29T13:55:14.181Z",
+  "data": {
+    "version": 1,
+    "startData": {},
+    "resultData": {
+      "runData": {
+        "Execute Workflow Trigger": [
+          {
+            "startTime": 1780062909816,
+            "executionIndex": 0,
+            "source": [],
+            "hints": [],
+            "executionTime": 0,
+            "metadata": {
+              "parentExecution": {
+                "executionId": "79",
+                "workflowId": "ra3VxbcRrbWtfHCg",
+                "shouldResume": true,
+                "executionContext": {
+                  "version": 1,
+                  "establishedAt": 1780062909483,
+                  "source": "webhook",
+                  "redaction": {
+                    "version": 1,
+                    "policy": "none"
+                  },
+                  "triggerNode": {
+                    "name": "Webhook",
+                    "type": "n8n-nodes-base.webhook"
+                  }
+                }
+              }
+            },
+            "executionStatus": "success",
+            "data": {
+              "main": [
+                [
+                  {
+                    "json": {
+                      "query": "List all SharePoint sites with their names and URLs",
+                      "conversationId": "test-conv-tdd-001",
+                      "userName": "TDD Test User",
+                      "aadObjectId": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "index": 0,
+                    "pairedItem": {
+                      "item": 0
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "Claude Haiku 4.5": [
+          {
+            "startTime": 1780062909849,
+            "executionTime": 1532,
+            "executionIndex": 2,
+            "executionStatus": "success",
+            "source": [
+              {
+                "previousNode": "Graph API AI Agent",
+                "previousNodeRun": 0
+              }
+            ],
+            "data": {
+              "ai_languageModel": [
+                [
+                  {
+                    "json": {
+                      "response": {
+                        "generations": [
+                          [
+                            {
+                              "text": "I'll retrieve all SharePoint sites available in your organization.{\"graphPath\": \"v1.0/sites\"}",
+                              "generationInfo": {}
+                            }
+                          ]
+                        ]
+                      },
+                      "tokenUsageEstimate": {
+                        "completionTokens": 22,
+                        "promptTokens": 606,
+                        "totalTokens": 628
+                      }
+                    }
+                  }
+                ]
+              ]
+            },
+            "inputOverride": {
+              "ai_languageModel": [
+                [
+                  {
+                    "json": {
+                      "messages": [
+                        "System: You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\n\nYou have the following tools available:\n\nUSER OPERATIONS:\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\n\nSITE OPERATIONS:\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\n\nGENERIC OPERATIONS:\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\n\nGuidelines:\n- Use the AAD object ID directly with Get User when available — it is the most reliable lookup key.\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\n- On errors, report the HTTP status code, Graph error code, and error message.\n\nRESPONSE FORMAT:\nAlways output a single raw JSON object — no markdown, no code fences, no prose outside the JSON.\n\nOn success:\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\n\nOn error (Graph API call or tool failure):\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}\nHuman: conversationId=test-conv-tdd-001, userName=TDD Test User, aadObjectId=00000000-0000-0000-0000-000000000001\n\nTask: List all SharePoint sites with their names and URLs"
+                      ],
+                      "estimatedTokens": 606,
+                      "options": {
+                        "anthropic_api_key": {
+                          "lc": 1,
+                          "type": "secret",
+                          "id": [
+                            "ANTHROPIC_API_KEY"
+                          ]
+                        },
+                        "model": "claude-haiku-4-5-20251001",
+                        "anthropic_api_url": "https://api.anthropic.com",
+                        "max_tokens": 16384,
+                        "invocation_kwargs": {},
+                        "client_options": {
+                          "fetchOptions": {}
+                        },
+                        "api_key": {
+                          "lc": 1,
+                          "type": "secret",
+                          "id": [
+                            "ANTHROPIC_API_KEY"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                ]
+              ]
+            },
+            "metadata": {
+              "subRun": [
+                {
+                  "node": "Claude Haiku 4.5",
+                  "runIndex": 0
+                }
+              ]
+            }
+          },
+          {
+            "startTime": 1780062912059,
+            "executionTime": 2040,
+            "executionIndex": 4,
+            "executionStatus": "success",
+            "source": [
+              {
+                "previousNode": "Graph API AI Agent",
+                "previousNodeRun": 0
+              }
+            ],
+            "data": {
+              "ai_languageModel": [
+                [
+                  {
+                    "json": {
+                      "response": {
+                        "generations": [
+                          [
+                            {
+                              "text": "```json\n{\n  \"summary\": \"No SharePoint sites found in the organization.\",\n  \"data_type\": \"sharepoint_site_list\",\n  \"payload\": {\n    \"sites\": [],\n    \"count\": 0\n  },\n  \"extracted_facts\": [],\n  \"next_steps\": [\n    \"Verify that SharePoint sites exist and the user has permissions to access them.\",\n    \"Check if sites need to be explicitly added or if the tenant has SharePoint enabled.\"\n  ]\n}\n```",
+                              "generationInfo": {}
+                            }
+                          ]
+                        ]
+                      },
+                      "tokenUsageEstimate": {
+                        "completionTokens": 102,
+                        "promptTokens": 695,
+                        "totalTokens": 797
+                      }
+                    }
+                  }
+                ]
+              ]
+            },
+            "inputOverride": {
+              "ai_languageModel": [
+                [
+                  {
+                    "json": {
+                      "messages": [
+                        "System: You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\n\nYou have the following tools available:\n\nUSER OPERATIONS:\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\n\nSITE OPERATIONS:\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\n\nGENERIC OPERATIONS:\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\n\nGuidelines:\n- Use the AAD object ID directly with Get User when available — it is the most reliable lookup key.\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\n- On errors, report the HTTP status code, Graph error code, and error message.\n\nRESPONSE FORMAT:\nAlways output a single raw JSON object — no markdown, no code fences, no prose outside the JSON.\n\nOn success:\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\n\nOn error (Graph API call or tool failure):\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}\nHuman: conversationId=test-conv-tdd-001, userName=TDD Test User, aadObjectId=00000000-0000-0000-0000-000000000001\n\nTask: List all SharePoint sites with their names and URLs\nAI: I'll retrieve all SharePoint sites available in your organization.[tool_use][{\"name\":\"Generic_Graph_GET\",\"args\":{\"graphPath\":\"v1.0/sites\"},\"id\":\"toolu_011koHWYvfW1K8nrFdU5sTLV\",\"type\":\"tool_call\"}]\nTool: {\"@odata.context\":\"https://graph.microsoft.com/v1.0/$metadata#sites\",\"value\":[]}"
+                      ],
+                      "estimatedTokens": 695,
+                      "options": {
+                        "anthropic_api_key": {
+                          "lc": 1,
+                          "type": "secret",
+                          "id": [
+                            "ANTHROPIC_API_KEY"
+                          ]
+                        },
+                        "model": "claude-haiku-4-5-20251001",
+                        "anthropic_api_url": "https://api.anthropic.com",
+                        "max_tokens": 16384,
+                        "invocation_kwargs": {},
+                        "client_options": {
+                          "fetchOptions": {}
+                        },
+                        "api_key": {
+                          "lc": 1,
+                          "type": "secret",
+                          "id": [
+                            "ANTHROPIC_API_KEY"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                ]
+              ]
+            },
+            "metadata": {
+              "subRun": [
+                {
+                  "node": "Claude Haiku 4.5",
+                  "runIndex": 1
+                }
+              ]
+            }
+          }
+        ],
+        "Generic Graph GET": [
+          {
+            "startTime": 1780062911389,
+            "executionTime": 667,
+            "executionIndex": 3,
+            "executionStatus": "success",
+            "source": [
+              {
+                "previousNode": "Graph API AI Agent",
+                "previousNodeRun": 0
+              }
+            ],
+            "data": {
+              "ai_tool": [
+                [
+                  {
+                    "json": {
+                      "response": "{\"@odata.context\":\"https://graph.microsoft.com/v1.0/$metadata#sites\",\"value\":[]}"
+                    }
+                  }
+                ]
+              ]
+            },
+            "inputOverride": {
+              "ai_tool": [
+                [
+                  {
+                    "json": {
+                      "query": {
+                        "graphPath": "v1.0/sites"
+                      }
+                    }
+                  }
+                ]
+              ]
+            },
+            "metadata": {
+              "subRun": [
+                {
+                  "node": "Generic Graph GET",
+                  "runIndex": 0
+                }
+              ]
+            }
+          }
+        ],
+        "Graph API AI Agent": [
+          {
+            "startTime": 1780062909816,
+            "executionIndex": 1,
+            "source": [
+              {
+                "previousNode": "Execute Workflow Trigger",
+                "previousNodeOutput": 0,
+                "previousNodeRun": 0
+              }
+            ],
+            "hints": [],
+            "executionTime": 4287,
+            "executionStatus": "success",
+            "data": {
+              "main": [
+                [
+                  {
+                    "json": {
+                      "output": "```json\n{\n  \"summary\": \"No SharePoint sites found in the organization.\",\n  \"data_type\": \"sharepoint_site_list\",\n  \"payload\": {\n    \"sites\": [],\n    \"count\": 0\n  },\n  \"extracted_facts\": [],\n  \"next_steps\": [\n    \"Verify that SharePoint sites exist and the user has permissions to access them.\",\n    \"Check if sites need to be explicitly added or if the tenant has SharePoint enabled.\"\n  ]\n}\n```"
+                    },
+                    "pairedItem": {
+                      "item": 0
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "Format Response": [
+          {
+            "startTime": 1780062914103,
+            "executionIndex": 5,
+            "source": [
+              {
+                "previousNode": "Graph API AI Agent",
+                "previousNodeOutput": 0,
+                "previousNodeRun": 0
+              }
+            ],
+            "hints": [],
+            "executionTime": 78,
+            "executionStatus": "success",
+            "data": {
+              "main": [
+                [
+                  {
+                    "json": {
+                      "status": "success",
+                      "execution_metadata": {
+                        "workflow_id": "P8NecHn00l4qArkW",
+                        "timestamp": "2026-05-29T13:55:14.179Z",
+                        "source": "n8n_presale_processor"
+                      },
+                      "summary": "No SharePoint sites found in the organization.",
+                      "data_type": "sharepoint_site_list",
+                      "payload": {
+                        "sites": [],
+                        "count": 0
+                      },
+                      "extracted_facts": [],
+                      "next_steps": [
+                        "Verify that SharePoint sites exist and the user has permissions to access them.",
+                        "Check if sites need to be explicitly added or if the tenant has SharePoint enabled."
+                      ],
+                      "errors": []
+                    },
+                    "pairedItem": {
+                      "item": 0
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "lastNodeExecuted": "Format Response"
+    },
+    "executionData": {
+      "contextData": {},
+      "nodeExecutionStack": [],
+      "metadata": {
+        "Claude Haiku 4.5": [
+          {
+            "subRun": [
+              {
+                "node": "Claude Haiku 4.5",
+                "runIndex": 0
+              }
+            ]
+          },
+          {
+            "subRun": [
+              {
+                "node": "Claude Haiku 4.5",
+                "runIndex": 1
+              }
+            ]
+          }
+        ],
+        "Generic Graph GET": [
+          {
+            "subRun": [
+              {
+                "node": "Generic Graph GET",
+                "runIndex": 0
+              }
+            ]
+          }
+        ]
+      },
+      "waitingExecution": {},
+      "waitingExecutionSource": {},
+      "runtimeData": {
+        "version": 1,
+        "establishedAt": 1780062909815,
+        "source": "integrated",
+        "redaction": {
+          "version": 1,
+          "policy": "none"
+        },
+        "triggerNode": {
+          "name": "Webhook",
+          "type": "n8n-nodes-base.webhook"
+        },
+        "parentExecutionId": "79"
+      }
+    },
+    "parentExecution": {
+      "executionId": "79",
+      "workflowId": "ra3VxbcRrbWtfHCg",
+      "shouldResume": true,
+      "executionContext": {
+        "version": 1,
+        "establishedAt": 1780062909483,
+        "source": "webhook",
+        "redaction": {
+          "version": 1,
+          "policy": "none"
+        },
+        "triggerNode": {
+          "name": "Webhook",
+          "type": "n8n-nodes-base.webhook"
+        }
+      }
+    },
+    "resumeToken": "4c89d54e430378a08c8298cecbd1ec0ae8601a2b861441cdf155bf159cf9af17"
+  }
+}

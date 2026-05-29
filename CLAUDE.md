@@ -51,8 +51,12 @@ microsoft-teams-bot/          # Node.js Teams bot (relay only)
 orchestrator/
   n8n/
     docker-compose.yml               # n8n + Qdrant Docker stack
-    presale-agent-workflow.json      # Main workflow: Webhook → AI Agent (Claude Sonnet 4.6 + Memory) → Callback
     .env.example                     # ANTHROPIC_API_KEY, AZURE_GRAPH_*, SHAREPOINT_*
+    workflows/
+      presale-agent-workflow.json    # Main workflow: Webhook → AI Agent (Claude Sonnet 4.6 + Memory) → Callback
+      graph-api-agent-workflow.json  # Graph API agent sub-workflow
+      sharepoint-agent-workflow.json # SharePoint agent sub-workflow
+    fixtures/                        # Pinned data fixtures for TDD testing
     _backup/
       presale-agent-workflow.json    # Archived dispatcher version (SharePoint state machine)
 
@@ -86,7 +90,7 @@ cd microsoft-teams-bot && npm run bot      # nodemon watch mode
 cd microsoft-teams-bot && npm run tunnel   # devtunnel host tidy-river-mfkpvdl.euw
 
 # Deploy/update n8n workflow via MCP (preferred) — or n8nac as fallback:
-npx n8nac push orchestrator/n8n/presale-agent-workflow.json --env Dev
+npx n8nac push orchestrator/n8n/workflows/presale-agent-workflow.json --env Dev
 
 # Rebuild Teams app zip after manifest changes
 cd microsoft-teams-bot && npm run build:teams
@@ -169,7 +173,7 @@ SHAREPOINT_DRIVE_ID=<value>
 ### Main Workflow: Presale Agent
 
 **Workflow ID:** `unPvfldAhlEkBcqi`  
-**File:** `orchestrator/n8n/presale-agent-workflow.json`
+**File:** `orchestrator/n8n/workflows/presale-agent-workflow.json`
 
 Pipeline (7 nodes):
 
@@ -184,6 +188,7 @@ Pipeline (7 nodes):
 > **After n8n container recreation:** credential IDs reset. Recreate "Anthropic account" (anthropicApi), then update the credential ID in the Claude Sonnet 4.6 node.
 
 > **Archived dispatcher workflow** (SharePoint state machine, 22 nodes) is preserved in `orchestrator/n8n/_backup/presale-agent-workflow.json`.
+**Workflow files** are in `orchestrator/n8n/workflows/`.
 
 ## n8n Webhook Contract
 

@@ -19,6 +19,7 @@ services:
       - NODE_OPTIONS=--dns-result-order=ipv4first
     extra_hosts:
       - "login.microsoftonline.com:40.126.31.71"
+      - "graph.microsoft.com:20.190.190.99"
     volumes:
       - n8n_data:/home/node/.n8n
 

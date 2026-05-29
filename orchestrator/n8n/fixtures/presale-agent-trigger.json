@@ -1,0 +1,11 @@
+{
+  "message": "I need a presale estimate for a React Native mobile app with offline sync, push notifications, and ~50k monthly active users. The client is a logistics company that wants iOS + Android support and a Node.js backend.",
+  "conversationId": "test-conv-tdd-001",
+  "userId": "test-user-tdd-001",
+  "userName": "TDD Test User",
+  "channelId": "msteams",
+  "serviceUrl": "https://smba.trafficmanager.net/teams/",
+  "callbackUrl": "http://host.docker.internal:3978/proactive",
+  "aadObjectId": "",
+  "attachments": []
+}

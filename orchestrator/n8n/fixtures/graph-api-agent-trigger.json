@@ -1,0 +1,6 @@
+{
+  "query": "List all SharePoint sites with their names and URLs",
+  "conversationId": "test-conv-tdd-001",
+  "userName": "TDD Test User",
+  "aadObjectId": "00000000-0000-0000-0000-000000000001"
+}
