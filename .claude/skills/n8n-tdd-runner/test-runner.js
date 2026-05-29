@@ -241,6 +241,73 @@ function findTerminalNodes(workflowJson, runData) {
   return Object.keys(runData).filter(name => !nodesWithOutgoing.has(name));
 }
 
+/**
+ * Deep subset match: returns null on match, or a string describing the first mismatch.
+ * Only keys present in `expected` are checked; extra keys in `actual` are ignored.
+ * `undefined`/`null` values in expected are skipped (don't-care).
+ */
+function deepSubsetMatch(actual, expected, path = '') {
+  if (expected === undefined || expected === null) return null;
+  if (Array.isArray(expected)) {
+    if (!Array.isArray(actual)) return `${path || 'root'}: expected array, got ${typeof actual}`;
+    for (let i = 0; i < expected.length; i++) {
+      const err = deepSubsetMatch(actual[i], expected[i], `${path}[${i}]`);
+      if (err) return err;
+    }
+    return null;
+  }
+  if (typeof expected === 'object') {
+    if (typeof actual !== 'object' || actual === null || Array.isArray(actual))
+      return `${path || 'root'}: expected object, got ${Array.isArray(actual) ? 'array' : typeof actual}`;
+    for (const key of Object.keys(expected)) {
+      if (!(key in actual)) return `${path ? path + '.' : ''}${key}: key missing in actual`;
+      const err = deepSubsetMatch(actual[key], expected[key], `${path ? path + '.' : ''}${key}`);
+      if (err) return err;
+    }
+    return null;
+  }
+  if (actual !== expected)
+    return `${path || 'root'}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`;
+  return null;
+}
+
+/** Assert terminal node output against an expected JSON file. Returns true on match. */
+function checkExpectedOutput(workflowJson, execution, expectedFile) {
+  const expected = JSON.parse(fs.readFileSync(expectedFile, 'utf8'));
+  const targetNode = expected['$node'];
+  const expectedMatch = Object.assign({}, expected);
+  delete expectedMatch['$node'];
+
+  const runData = execution.data?.resultData?.runData || {};
+  const terminals = findTerminalNodes(workflowJson, runData);
+
+  const nodeName = targetNode || terminals[terminals.length - 1];
+  if (!nodeName || !runData[nodeName]) {
+    console.error(`[TDD] OUTPUT MISMATCH: node "${nodeName}" not found in execution data`);
+    return false;
+  }
+
+  const items = runData[nodeName][0]?.data?.main?.[0] || [];
+  const actual = items[0]?.json;
+  if (actual === undefined) {
+    console.error(`[TDD] OUTPUT MISMATCH: node "${nodeName}" produced no items`);
+    return false;
+  }
+
+  const mismatch = deepSubsetMatch(actual, expectedMatch);
+  if (mismatch) {
+    console.error(`\n[TDD] OUTPUT MISMATCH: ${mismatch}`);
+    console.error('[TDD] Expected (subset):');
+    console.error(JSON.stringify(expectedMatch, null, 2).split('\n').map(l => '  ' + l).join('\n'));
+    console.error('[TDD] Actual output:');
+    console.error(JSON.stringify(actual, null, 2).split('\n').map(l => '  ' + l).join('\n'));
+    return false;
+  }
+
+  console.log(`\n[TDD] OUTPUT MATCH — actual output of "${nodeName}" satisfies expected constraints`);
+  return true;
+}
+
 /** Print the JSON output of each terminal node. */
 function printTerminalOutputs(workflowJson, execution) {
   const runData = execution.data?.resultData?.runData || {};
@@ -269,6 +336,7 @@ async function main() {
 
   const WORKFLOW_FILE = args['--workflow'];
   const FIXTURE_FILE = args['--fixture'];
+  const EXPECTED_FILE = args['--expected'] || null;
   const LOG_FILE = args['--log-out'] ||
     path.join(PROJECT_ROOT, 'orchestrator/n8n/fixtures/latest-execution-log.json');
   const TIMEOUT_MS = parseInt(args['--timeout'] || '90000');
@@ -319,6 +387,7 @@ async function main() {
 
     console.log(`[TDD] Workflow : ${path.relative(PROJECT_ROOT, WORKFLOW_FILE)} (id: ${workflowId})`);
     console.log(`[TDD] Fixture  : ${path.relative(PROJECT_ROOT, FIXTURE_FILE)}`);
+    console.log(`[TDD] Expected : ${EXPECTED_FILE ? path.relative(PROJECT_ROOT, EXPECTED_FILE) : '(none)'}`);
     console.log(`[TDD] Mode     : sub-workflow (executeWorkflowTrigger)`);
     console.log(`[TDD] Timeout  : ${TIMEOUT_MS / 1000}s`);
     console.log('');
@@ -368,6 +437,7 @@ async function main() {
 
     console.log(`[TDD] Workflow : ${path.relative(PROJECT_ROOT, WORKFLOW_FILE)} (id: ${workflowId})`);
     console.log(`[TDD] Fixture  : ${path.relative(PROJECT_ROOT, FIXTURE_FILE)}`);
+    console.log(`[TDD] Expected : ${EXPECTED_FILE ? path.relative(PROJECT_ROOT, EXPECTED_FILE) : '(none)'}`);
     console.log(`[TDD] Endpoint : ${N8N_BASE_URL}/webhook/${webhookPath}`);
     console.log(`[TDD] Timeout  : ${TIMEOUT_MS / 1000}s`);
     console.log('');
@@ -412,16 +482,30 @@ async function main() {
   // Always print terminal node outputs so no separate execution fetch is needed
   printTerminalOutputs(workflowJson, execution);
 
-  if (execution.status === 'success') {
-    console.log('\n[TDD] PASS — workflow completed successfully');
-    process.exit(0);
-  } else {
+  if (execution.status !== 'success') {
     console.error(`\n[TDD] FAIL — execution status: ${execution.status}`);
     const errorNode = findErrorNode(execution);
     if (errorNode) {
       console.error(`[TDD] Failing node: ${errorNode.name}`);
       console.error('[TDD] Error:', JSON.stringify(errorNode.error, null, 2));
     }
+    process.exit(1);
+  }
+
+  let outputOk = true;
+  if (EXPECTED_FILE) {
+    if (!fs.existsSync(EXPECTED_FILE)) {
+      console.error(`ERROR: expected output file not found: ${EXPECTED_FILE}`);
+      process.exit(1);
+    }
+    outputOk = checkExpectedOutput(workflowJson, execution, EXPECTED_FILE);
+  }
+
+  if (outputOk) {
+    console.log('\n[TDD] PASS — workflow completed successfully');
+    process.exit(0);
+  } else {
+    console.error('\n[TDD] FAIL — workflow succeeded but output does not match expected');
     process.exit(1);
   }
 }

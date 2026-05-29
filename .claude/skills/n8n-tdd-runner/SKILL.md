@@ -27,10 +27,13 @@ cd orchestrator/n8n && docker compose up -d n8n
 
 Repeat the following steps until exit code is 0:
 
+0. **Understand requirements** — derive fixture input and expected output from the user's description (see sections below)
 1. **Edit** the workflow JSON (`orchestrator/n8n/workflows/<name>.json`)
 2. **Run** the test runner (see command below)
-3. **If PASS** (exit 0) → done
-4. **If FAIL** (exit 1) → read `orchestrator/n8n/fixtures/latest-execution-log.json`, diagnose, fix, go to step 1
+3. **If PASS** (exit 0) → confirm output looks correct, then done
+4. **If FAIL** (exit 1):
+   - `status=error` → read `orchestrator/n8n/fixtures/latest-execution-log.json`, find the first node with an `error` key, fix it, go to step 1
+   - `status=success` but `OUTPUT MISMATCH` → read the printed diff (expected subset vs actual), fix the node that produces the wrong output, go to step 1
 
 ---
 
@@ -38,8 +41,9 @@ Repeat the following steps until exit code is 0:
 
 ```bash
 node '.claude/skills/n8n-tdd-runner/test-runner.js' \
-  --workflow 'orchestrator/n8n/workflows/<your-workflow>.json' \
-  --fixture  'orchestrator/n8n/fixtures/<your-trigger>.json'
+  --workflow  'orchestrator/n8n/workflows/<your-workflow>.json' \
+  --fixture   'orchestrator/n8n/fixtures/<your-trigger>.json' \
+  --expected  'orchestrator/n8n/fixtures/<your-expected>.json'
 ```
 
 **All flags:**
@@ -48,19 +52,69 @@ node '.claude/skills/n8n-tdd-runner/test-runner.js' \
 |---|---|---|
 | `--workflow` | *(required)* | Workflow JSON to deploy |
 | `--fixture` | *(required)* | Webhook payload to send |
+| `--expected` | `(none)` | Expected output JSON; runner asserts terminal node output against this file (deep subset match) |
 | `--timeout` | `90000` | Max ms to wait for execution |
 | `--log-out` | `orchestrator/n8n/fixtures/latest-execution-log.json` | Where to save execution log |
 
 ---
 
-## Fixtures
+## Fixture Generation
 
-Create one JSON file per workflow under `orchestrator/n8n/fixtures/`. The file should contain the raw webhook payload the workflow expects. Name it `<workflow-name>-trigger.json` by convention.
+Before running the TDD loop, derive the fixture from the user's requirement:
 
-**Example:**
+1. Read the workflow's trigger node to understand what fields it expects
+2. Create `orchestrator/n8n/fixtures/<workflow>-trigger.json` with realistic test values
+
+**graph-api-agent example:**
 ```json
-{ "message": "hello", "conversationId": "test-123", "callbackUrl": "http://localhost:3978/proactive" }
+{
+  "query": "Get the profile of user john.doe@contoso.com",
+  "conversationId": "test-conv-001",
+  "userName": "TDD Test User",
+  "aadObjectId": "00000000-0000-0000-0000-000000000001"
+}
 ```
+
+**presale-agent example:**
+```json
+{
+  "message": "We need a CRM system for 50 users",
+  "conversationId": "test-conv-001",
+  "userId": "user-001",
+  "userName": "Test User",
+  "channelId": "msteams",
+  "serviceUrl": "https://smba.trafficmanager.net/emea/",
+  "callbackUrl": "http://localhost:3978/proactive"
+}
+```
+
+---
+
+## Expected Output
+
+Create `orchestrator/n8n/fixtures/<workflow>-expected.json` declaring what the terminal node must produce. Only the declared fields are checked — extra fields in the actual output are ignored (deep-subset match).
+
+**Format:**
+```json
+{
+  "$node": "Format Response",
+  "status": "success",
+  "data_type": "user_profile",
+  "payload": {
+    "displayName": "John Doe"
+  }
+}
+```
+
+| Key | Purpose |
+|---|---|
+| `$node` | *(optional)* Which terminal node to assert. Defaults to the last terminal node if omitted. |
+| everything else | Deep-subset fields to match against `item[0].json` of the target node |
+
+**Rules:**
+- Use only fields the user explicitly cares about — avoid asserting timestamps, IDs, or metadata that changes per run
+- For LLM-driven outputs, assert `status`, `data_type`, and top-level payload shape — not exact text
+- `null` values are skipped (treated as don't-care)
 
 ---
 

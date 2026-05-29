@@ -1,5 +1,5 @@
 {
-  "query": "List all SharePoint sites with their names and URLs",
+  "query": "List all lists on the SharePoint site t8lxc.sharepoint.com:/sites/PresaleAgentBot",
   "conversationId": "test-conv-tdd-001",
   "userName": "TDD Test User",
   "aadObjectId": "00000000-0000-0000-0000-000000000001"

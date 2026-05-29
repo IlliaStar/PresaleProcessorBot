@@ -1,0 +1,8 @@
+{
+  "$node": "Format Response",
+  "status": "success",
+  "data_type": "sharepoint_site_list",
+  "payload": {
+    "lists": [{}]
+  }
+}
