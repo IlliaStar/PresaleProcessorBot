@@ -70,7 +70,7 @@
       "name": "Window Buffer Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
-      "position": [768, 528]
+      "position": [688, 624]
     },
     {
       "parameters": {
@@ -89,8 +89,14 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {"name": "conversationId", "value": "={{ $json.conversationId }}"},
-            {"name": "reply", "value": "={{ $json.reply }}"}
+            {
+              "name": "conversationId",
+              "value": "={{ $json.conversationId }}"
+            },
+            {
+              "name": "reply",
+              "value": "={{ $json.reply }}"
+            }
           ]
         },
         "options": {}
@@ -101,6 +107,68 @@
       "typeVersion": 4.2,
       "position": [1088, 304],
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to retrieve information from Microsoft Graph API or SharePoint.\n\nCall this tool when you need to:\n- Look up a user profile (by name, email, or AAD object ID): job title, department, manager, office location, contact details\n- Search for users in Azure Active Directory by display name, email, or department\n- Get a user's direct manager\n- Retrieve SharePoint site metadata\n- Make any other read-only Microsoft Graph API query (group membership, calendar, etc.)\n\nPass a natural-language `query` describing exactly what information is needed. Optionally include `conversationId`, `userName`, and `aadObjectId` from the current conversation context to aid lookup.",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "P8NecHn00l4qArkW",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ $fromAI('query', 'Natural-language description of what Graph API or SharePoint information to retrieve', 'string') }}",
+            "conversationId": "={{ $json.conversationId ?? '' }}",
+            "userName": "={{ $json.userName ?? '' }}",
+            "aadObjectId": "={{ $json.aadObjectId ?? '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "query", "displayName": "query", "required": true, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "conversationId", "displayName": "conversationId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "userName", "displayName": "userName", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "aadObjectId", "displayName": "aadObjectId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false}
+          ]
+        }
+      },
+      "id": "e1f2a3b4-c5d6-4e78-9f0a-1b2c3d4e5f60",
+      "name": "Graph API Agent Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [880, 528]
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to read from or write to SharePoint lists and files.\n\nCall this tool when you need to:\n- Read conversation state or turn history from the Conversations / Turns lists\n- Create or update a Conversation record (currentStep, status, summary, clarificationTurns, etc.)\n- Append a new Turn to the Turns list\n- Upload, download, or update files in the Transcripts document library (wbs.md, estimates.json, transcript overflow files)\n- Any other CRUD operation on SharePoint list items or Document Library files\n\nPass a natural-language `query` describing the exact operation needed (e.g. \"Get the Conversation item where conversationId = 'abc'\"). Include `conversationId` and `userName` from the current conversation context.",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "rDK4JWk961DRUUuP",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ $fromAI('query', 'Natural-language description of the SharePoint operation to perform', 'string') }}",
+            "conversationId": "={{ $json.conversationId ?? '' }}",
+            "userName": "={{ $json.userName ?? '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "query", "displayName": "query", "required": true, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "conversationId", "displayName": "conversationId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "userName", "displayName": "userName", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false}
+          ]
+        }
+      },
+      "id": "f2a3b4c5-d6e7-4f89-a0b1-2c3d4e5f6071",
+      "name": "SharePoint Agent Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [1040, 528]
     }
   ],
   "connections": {
@@ -116,13 +184,17 @@
     "Window Buffer Memory": {
       "ai_memory": [[{"node": "Presale Agent", "type": "ai_memory", "index": 0}]]
     },
+    "Graph API Agent Tool": {
+      "ai_tool": [[{"node": "Presale Agent", "type": "ai_tool", "index": 0}]]
+    },
+    "SharePoint Agent Tool": {
+      "ai_tool": [[{"node": "Presale Agent", "type": "ai_tool", "index": 0}]]
+    },
     "Presale Agent": {
       "main": [[{"node": "Format Reply", "type": "main", "index": 0}]]
     },
     "Format Reply": {
-      "main": [[
-        {"node": "Teams Callback", "type": "main", "index": 0}
-      ]]
+      "main": [[{"node": "Teams Callback", "type": "main", "index": 0}]]
     }
   },
   "settings": {
