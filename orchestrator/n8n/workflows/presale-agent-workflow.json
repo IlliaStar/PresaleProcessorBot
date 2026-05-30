@@ -17,13 +17,83 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').trim();\nconst userName = body.userName || 'User';\nconst conversationId = body.conversationId || 'default';\nconst callbackUrl = body.callbackUrl || '';\nconst attachments = body.attachments || [];\n\nconst parts = [];\nif (message) parts.push(message);\nfor (const att of attachments) {\n  if (att.name && att.content) {\n    parts.push(`\\n[Attached file: ${att.name}, ${Math.round((att.sizeBytes || 0) / 1024)} KB]`);\n  } else if (att.name) {\n    parts.push(`\\n[File attached (could not be downloaded): ${att.name}]`);\n  }\n}\nconst userMessage = parts.join('\\n') || `Hello from ${userName}`;\n\nconst userId = body.userId || body.from?.id || '';\nconst aadObjectId = body.aadObjectId || body.from?.aadObjectId || '';\nreturn [{ json: { userMessage, rawMessage: message, conversationId, callbackUrl, userName, userId, aadObjectId } }];"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').trim();\nconst userName = body.userName || 'User';\nconst conversationId = body.conversationId || 'default';\nconst callbackUrl = body.callbackUrl || '';\nconst attachments = body.attachments || [];\n\nconst parts = [];\nif (message) parts.push(message);\nfor (const att of attachments) {\n  if (att.name && att.content) {\n    parts.push(`\\n[Attached file: ${att.name}, ${Math.round((att.sizeBytes || 0) / 1024)} KB]`);\n  } else if (att.name) {\n    parts.push(`\\n[File attached (could not be downloaded): ${att.name}]`);\n  }\n}\nconst userMessage = parts.join('\\n') || `Hello from ${userName}`;\n\nconst userId = body.userId || body.from?.id || '';\nconst aadObjectId = body.aadObjectId || body.from?.aadObjectId || '';\nreturn [{ json: { userMessage, rawMessage: message, conversationId, callbackUrl, userName, userId, aadObjectId, attachments } }];"
       },
       "id": "a1b2c3d4-0002-4000-8000-100000000002",
       "name": "Prepare Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [432, 304]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b5c6d7e8-f9a0-4b1c-8d2e-3f4a5b6c7d8e",
+              "leftValue": "={{ $json.attachments.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b5c6d7e8-f9a0-4b1c-8d2e-3f4a5b6c7d8e",
+      "name": "Has Attachments?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [656, 304]
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $input.first().json;\nconst siteUrl = $env.SHAREPOINT_SITE_URL || '';\nconst results = [];\nfor (const att of prep.attachments || []) {\n  if (!att.content) continue;\n  const fileName = att.name || 'attachment';\n  const binary = await this.helpers.prepareBinaryData(\n    Buffer.from(att.content, 'base64'),\n    fileName,\n    att.contentType || 'application/octet-stream'\n  );\n  results.push({\n    json: {\n      conversationId: prep.conversationId,\n      userName: prep.userName,\n      fileName,\n      contentType: att.contentType || 'application/octet-stream',\n      query: `Upload the file \"${fileName}\" from binary field \"data\" into the Transcripts document library at site ${siteUrl} under folder \"${prep.conversationId}\". The binary content is already attached to this item.`\n    },\n    binary: { data: binary }\n  });\n}\nreturn results.length ? results : [{ json: { conversationId: prep.conversationId, userName: prep.userName, fileName: '', contentType: '', query: 'No file to upload. Return immediately.' } }];"
+      },
+      "id": "c6d7e8f9-a0b1-4c2d-9e3f-4a5b6c7d8e9f",
+      "name": "Expand Attachments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 160]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rDK4JWk961DRUUuP",
+          "mode": "id",
+          "cachedResultName": "Sub - SharePoint Agent"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "d7e8f9a0-b1c2-4d3e-af40-5b6c7d8e9f0a",
+      "name": "Upload to Transcripts",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1104, 160],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $('Prepare Input').item.json;\nreturn [{ json: prep }];"
+      },
+      "id": "e8f9a0b1-c2d3-4e4f-b051-6c7d8e9f0a1b",
+      "name": "Restore Input Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1328, 160]
     },
     {
       "parameters": {
@@ -37,7 +107,7 @@
       "name": "Presale Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [640, 304]
+      "position": [1552, 304]
     },
     {
       "parameters": {
@@ -52,7 +122,7 @@
       "name": "Claude Sonnet 4.6",
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
-      "position": [528, 528],
+      "position": [1440, 528],
       "credentials": {
         "anthropicApi": {
           "id": "tveGybvizLkoc6QO",
@@ -70,7 +140,7 @@
       "name": "Window Buffer Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
-      "position": [688, 624]
+      "position": [1600, 624]
     },
     {
       "parameters": {
@@ -80,7 +150,7 @@
       "name": "Format Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [864, 304]
+      "position": [1776, 304]
     },
     {
       "parameters": {
@@ -105,7 +175,7 @@
       "name": "Teams Callback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1088, 304],
+      "position": [2000, 304],
       "continueOnFail": true
     },
     {
@@ -138,7 +208,7 @@
       "name": "Graph API Agent Tool",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [880, 528]
+      "position": [1792, 528]
     },
     {
       "parameters": {
@@ -168,7 +238,7 @@
       "name": "SharePoint Agent Tool",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [1040, 528]
+      "position": [1952, 528]
     }
   ],
   "connections": {
@@ -176,6 +246,21 @@
       "main": [[{"node": "Prepare Input", "type": "main", "index": 0}]]
     },
     "Prepare Input": {
+      "main": [[{"node": "Has Attachments?", "type": "main", "index": 0}]]
+    },
+    "Has Attachments?": {
+      "main": [
+        [{"node": "Expand Attachments", "type": "main", "index": 0}],
+        [{"node": "Presale Agent", "type": "main", "index": 0}]
+      ]
+    },
+    "Expand Attachments": {
+      "main": [[{"node": "Upload to Transcripts", "type": "main", "index": 0}]]
+    },
+    "Upload to Transcripts": {
+      "main": [[{"node": "Restore Input Data", "type": "main", "index": 0}]]
+    },
+    "Restore Input Data": {
       "main": [[{"node": "Presale Agent", "type": "main", "index": 0}]]
     },
     "Claude Sonnet 4.6": {

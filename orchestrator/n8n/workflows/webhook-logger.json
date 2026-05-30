@@ -1,0 +1,170 @@
+{
+  "id": "FxrRwBgeOxGz9yTc",
+  "name": "Webhook Logger",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook-logger",
+        "responseMode": "lastNode"
+      },
+      "webhookId": "adecbac6-b876-4bfc-8789-246cd66f2061"
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Log Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "console.log('Incoming item:', JSON.stringify($input.item.json, null, 2));\nreturn $input.item;"
+      }
+    },
+    {
+      "id": "e5f6a7b8-c9d0-4123-9ef0-567890123456",
+      "name": "Get User Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [700, 300],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "credentials": {
+        "microsoftSharePointOAuth2Api": {
+          "id": "zPuE8vYYqzsfgvZM",
+          "name": "Microsoft SharePoint - t8lxc"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $json.userId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftSharePointOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "$select",
+              "value": "displayName,mail,jobTitle,department,officeLocation,mobilePhone"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d4e5f6a7-b8c9-4012-8def-456789012345",
+      "name": "Create SP Conversation",
+      "type": "n8n-nodes-base.microsoftSharePoint",
+      "typeVersion": 1,
+      "position": [940, 300],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "microsoftSharePointOAuth2Api": {
+          "id": "zPuE8vYYqzsfgvZM",
+          "name": "Microsoft SharePoint - t8lxc"
+        }
+      },
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "site": {
+          "__rl": true,
+          "value": "={{ $env.SHAREPOINT_SITE_URL }}",
+          "mode": "id",
+          "cachedResultName": "Presale Agent Bot"
+        },
+        "list": {
+          "__rl": true,
+          "value": "={{ $env.SHAREPOINT_CONVERSATIONS_LIST_ID }}",
+          "mode": "id",
+          "cachedResultName": "Conversations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversationId": "={{ $('Log Data').item.json.conversationId }}",
+            "userId": "={{ $('Log Data').item.json.userId }}",
+            "userName": "={{ $('Get User Info').item.json.displayName || $('Log Data').item.json.userName }}",
+            "channelId": "={{ $('Log Data').item.json.channelId }}",
+            "jobTitle": "={{ $('Get User Info').item.json.jobTitle || '' }}",
+            "department": "={{ $('Get User Info').item.json.department || '' }}",
+            "currentStep": "new",
+            "status": "Active",
+            "createdAt": "={{ $now.toISO() }}",
+            "modifiedAt": "={{ $now.toISO() }}",
+            "lastTurnNo": 0,
+            "clarificationTurns": 0
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1180, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ \"success\": true, \"received\": $json }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Log Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Data": {
+      "main": [
+        [
+          {
+            "node": "Get User Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Info": {
+      "main": [
+        [
+          {
+            "node": "Create SP Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create SP Conversation": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

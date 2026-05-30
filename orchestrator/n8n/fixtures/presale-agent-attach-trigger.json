@@ -1,0 +1,17 @@
+{
+  "message": "Please analyze this requirements document",
+  "conversationId": "test-attach-001",
+  "userId": "test-user-123",
+  "userName": "Test User",
+  "channelId": "msteams",
+  "serviceUrl": "https://smba.trafficmanager.net/emea/",
+  "callbackUrl": "http://host.docker.internal:3978/proactive",
+  "attachments": [
+    {
+      "name": "requirements.txt",
+      "contentType": "text/plain",
+      "content": "UHJvamVjdCByZXF1aXJlbWVudHM6CjEuIEJ1aWxkIGEgd2ViIGFwcAoyLiBSZWFjdCBmcm9udGVuZAozLiBOb2RlLmpzIGJhY2tlbmQ=",
+      "sizeBytes": 80
+    }
+  ]
+}
