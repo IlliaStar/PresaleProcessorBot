@@ -2,7 +2,7 @@
 name: n8n-fixture-gen
 description: >
   Specialist agent that generates realistic test fixtures for n8n workflows.
-  INVOKED BY n8n-architect only — not triggered by user directly.
+  INVOKED BY n8n-orchestrator only — not triggered by user directly.
   Reads the workflow JSON structure to derive input schema and output shape,
   then writes two fixture files: a trigger payload and a structural expected-output assertion.
 tools: Read, Write, Grep, mcp__n8n-mcp__get_node

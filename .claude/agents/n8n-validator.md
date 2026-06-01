@@ -2,7 +2,7 @@
 name: n8n-validator
 description: >
   QA agent that validates n8n workflow JSON before deployment.
-  INVOKED BY n8n-architect only — not triggered by user directly.
+  INVOKED BY n8n-orchestrator only — not triggered by user directly.
   Checks structural integrity, schema compliance, security, naming, error handling,
   AI wiring, performance patterns, and project-specific env var coverage.
 tools: Read, Grep, mcp__n8n-mcp__validate_workflow, mcp__n8n-mcp__get_node

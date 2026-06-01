@@ -2,7 +2,7 @@
 name: n8n-runner
 description: >
   Deploy-and-execute agent for n8n workflows.
-  INVOKED BY n8n-architect only — not triggered directly by user.
+  INVOKED BY n8n-orchestrator only — not triggered directly by user.
   Deploys workflow JSON to n8n via REST API (same approach as test-runner.js),
   fires the trigger fixture, polls execution to completion, and returns raw
   execution data for the architect to analyze. Does NOT interpret errors.

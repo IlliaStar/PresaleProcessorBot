@@ -2,7 +2,7 @@
 name: n8n-builder
 description: >
   Specialist agent that builds n8n workflow JSON from a topology plan AND implements Code node JavaScript.
-  INVOKED BY n8n-architect only — not triggered by user directly.
+  INVOKED BY n8n-orchestrator only — not triggered by user directly.
   Knows all standard node types, parameter schemas, connection format, n8n expression syntax,
   error handling patterns, AI/LangChain wiring, credential management, performance best practices,
   and n8n Code node I/O contract.
