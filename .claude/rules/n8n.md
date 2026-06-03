@@ -10,7 +10,8 @@ Manages the n8n workflow files that power the Presale Agent pipeline.
 
 ## Rules
 
-- **Always use `n8n-cli`** for ALL workflow management: create, update, activate, deactivate, delete, list, validate. Never use the n8n UI, REST API directly, or npx n8nac.
+- **Variables ($vars vs $env)** — We use the Free/Community Edition of n8n, which does **NOT** support Instance Variables (`$vars`). Never use `$vars` in expressions. Instead, retrieve configuration from environment variables via `$env.VARIABLE_NAME`.
+- **Environment variables in UI (`N8N_ENV_VARS_UI_ALLOWED`)** — By default, `$env` variables are blocked from the UI and show as `undefined`. Always explicitly allow needed variables (e.g., `SHAREPOINT_SITE_URL`) by appending them to `N8N_ENV_VARS_UI_ALLOWED` in `docker-compose.yml`.
 - **Deploy command** — `n8n-cli workflows update <id> --file <path> --yes --skip-validation`. Use `--skip-validation` because n8n-cli does not know LangChain node types locally.
 - **Create command** — `n8n-cli workflows import <path>` for new workflows. Note: assign the returned ID back into the JSON `id` field.
 - **Activate after creation** — newly created workflows are inactive by default. Always activate the workflow immediately after creation using `n8n_update_partial_workflow` with `activateWorkflow` operation (or `n8n-cli workflows activate <id>`). Never leave a newly created workflow inactive.

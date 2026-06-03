@@ -54,9 +54,9 @@ class PresaleBot extends TeamsActivityHandler {
     // Download attachments
     const attachments = await Promise.all(
       (activity.attachments || [])
-        .filter((a) => a.contentUrl)
+        .filter((a) => a.contentUrl || a.content?.downloadUrl)
         .map(async (a) => {
-          const downloaded = await this._downloadAttachment(a.contentUrl);
+          const downloaded = await this._downloadAttachment(a);
           return { name: a.name, contentType: a.contentType, ...downloaded };
         })
     );
@@ -119,21 +119,28 @@ class PresaleBot extends TeamsActivityHandler {
     });
   }
 
-  async _downloadAttachment(contentUrl) {
+  async _downloadAttachment(attachment) {
+    // Teams file attachments expose content.downloadUrl — a pre-authenticated short-lived URL
+    // that does not require a Bearer token. contentUrl points to SharePoint and would require
+    // a different OAuth scope than the Bot Framework token, so it reliably fails.
+    const downloadUrl = attachment.content?.downloadUrl || attachment.contentUrl;
+    const useAuth = !attachment.content?.downloadUrl;
     try {
-      const creds = new MicrosoftAppCredentials(config.appId, config.appPassword, config.appTenantId);
-      const token = await creds.getToken();
-      const response = await fetch(contentUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const headers = {};
+      if (useAuth) {
+        const creds = new MicrosoftAppCredentials(config.appId, config.appPassword, config.appTenantId);
+        const token = await creds.getToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch(downloadUrl, { headers });
       if (!response.ok) {
-        console.warn(`File download failed: HTTP ${response.status} for ${contentUrl}`);
-        return { contentUrl, content: null, sizeBytes: null };
+        console.warn(`File download failed: HTTP ${response.status} for ${downloadUrl}`);
+        return { contentUrl: downloadUrl, content: null, sizeBytes: null };
       }
       const buffer = await response.arrayBuffer();
       if (buffer.byteLength > config.maxAttachmentBytes) {
         console.warn(`File too large (${buffer.byteLength} bytes), skipping content`);
-        return { contentUrl, content: null, sizeBytes: buffer.byteLength };
+        return { contentUrl: downloadUrl, content: null, sizeBytes: buffer.byteLength };
       }
       return {
         content: Buffer.from(buffer).toString('base64'),
@@ -141,7 +148,7 @@ class PresaleBot extends TeamsActivityHandler {
       };
     } catch (err) {
       console.warn(`File download error: ${err.message}`);
-      return { contentUrl, content: null, sizeBytes: null };
+      return { contentUrl: downloadUrl, content: null, sizeBytes: null };
     }
   }
 

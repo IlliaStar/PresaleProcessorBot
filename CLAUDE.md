@@ -7,28 +7,78 @@ AI-powered agent that analyzes presale requests via Microsoft Teams, estimates e
 ## Architecture
 
 ```
-Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webhook
+Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webhook (/presale-agent)
                                                                        ↓
-                                                                  Dispatcher
+                                                                  Prepare Input
                                                                        ↓
-                                  SharePoint state store ←→ Resolve Routing Step (state machine)
-                                  (Conversations + Turns)            ↓
-                                                                Topic Router
+                                                               Presale AI Agent
+                                                              (Claude Sonnet 4.6)
+                                                              + Window Buffer Memory
                                                                        ↓
-                                                ┌─── presale_analysis (Claude Sonnet 4.6)
-                                                ├─── clarification   (Claude Sonnet 4.6)
-                                                ├─── status_check    (Claude Sonnet 4.6)
-                                                └─── greeting        (static reply)
-                                                                       ↓
-                                                          Append turns to SharePoint
-                                                                       ↓
-                                                         Proactive Callback → Teams
+                                     ┌─────────────────┬───────────────┬─────────────────┐
+                                     ▼                 ▼               ▼                 ▼
+                              SharePoint Agent   Graph API Agent  Format Reply   Proactive Callback
+                              (Haiku 4.5,        (Haiku 4.5,           │            → Teams
+                               file ops)          user/org lookup)      │
+                                     │                 │               │
+                                     ▼                 ▼               │
+                              SharePoint Online (Graph API)             │
+                              Lists: Conversations, Turns               │
+                              Library: Transcripts                      │
 ```
+
+### Sub-Workflows (invoked as tools by Presale AI Agent)
+
+| Workflow | File | AI Model | Purpose |
+|---|---|---|---|
+| SharePoint Agent | `sharepoint-agent-workflow.json` | Haiku 4.5 | File upload/download via Graph API. Uses `Upload File via Graph API` tool (delegates to sharepoint-upload-file WF) and `Download File` tool (SharePoint native). |
+| Graph API Agent | `graph-api-agent-workflow.json` | Haiku 4.5 | Microsoft Graph operations: user profile lookup, manager chain, organization data. |
+| SharePoint Upload File | `sharepoint-upload-file-workflow.json` | (Code node) | Low-level Graph API upload: resolves Drive ID, constructs upload session, handles base64 decode. Invoked as a tool workflow by SharePoint Agent. |
 
 > **Conversation state lives in SharePoint** (List `Conversations` + List `Turns` + Document Library `Transcripts`). Each turn reads/writes the lifecycle step (`new → intake → clarification → estimation → review → completed`) — no in-memory state. See [SharePoint State Store](#sharepoint-state-store).
 > Qdrant (vector search) is **planned but not yet implemented**.
 > Bot uses **fire-and-forget** pattern — sends payload to n8n, n8n calls back via `PROACTIVE_CALLBACK_URL`.
 > **Intent classification** is **context-aware** — Haiku 4.5 receives `currentStep` + last 2 turns and outputs one of `continue / status_query / closing / social_only / restart`. A cheap regex pre-filter short-circuits trivial pleasantries.
+
+### Lifecycle Phase Behavior
+
+| Step | Behavior |
+|---|---|
+| **new** | Initial state. Route to greeting or directly to intake based on message content. |
+| **intake** | Acknowledge the request. Extract: domain, tech stack, timeline, team size, client context. Identify gaps — if requirements are vague, transition to `clarification`. |
+| **clarification** | Ask up to **3 targeted questions per turn**. Increment `clarificationTurns` counter. At **≥5 clarification turns**, forced-advance to `estimation` regardless of completeness. |
+| **estimation** | Produce a structured effort estimate table by role (see [Estimate Role Schema](#estimate-role-schema)) with min/max person-days and confidence (Low/Medium/High). Generate `wbs.md` and `estimates.json` artifacts. Transition to `review`. |
+| **review** | Present estimates and WBS for stakeholder approval. Recognizes explicit approval signals to transition to `completed`. On rejection or revision requests, loop back to `clarification` or `estimation`. |
+| **completed** | Final artifacts archived. Conversation idle unless user sends `restart` intent to begin a new presale. |
+
+#### Estimate Role Schema
+
+The standard role breakdown for effort estimates. All 6 roles must appear in every estimate table:
+
+| Role | Deliverable scope |
+|---|---|
+| BA | Requirements elicitation, stakeholder workshops, backlog definition |
+| Backend | API design, data modeling, integration, core business logic |
+| Frontend | UI components, state management, responsive layout, accessibility |
+| QA | Test planning, automation, manual testing, UAT coordination |
+| DevOps | CI/CD pipelines, infrastructure as code, environment provisioning |
+| PM | Sprint planning, risk management, stakeholder reporting, coordination |
+
+#### Approval Signals
+
+The system recognizes these patterns as review approval (→ transition to `completed`):
+- English: `approve`, `approved`, `confirm`, `confirmed`, `looks good`, `lgtm`, `ship it`, `go ahead`, `accepted`
+- Russian: `одобряю`, `подтверждаю`, `согласен`, `принято`, `ок`, `добро`
+
+#### Artifact Specifications
+
+| Artifact | File | Format | Stored in |
+|---|---|---|---|
+| Estimate Table | inline in chat reply | Markdown table (roles × rows, min/max pd + notes columns) | also persisted in `Turns.text` |
+| WBS | `wbs.md` | Markdown — hierarchical heading structure (## Phase → ### Deliverable → #### Task), each task with estimated hours | `Transcripts/<conversationId>/wbs.md` |
+| Estimates JSON | `estimates.json` | `{ conversationId, generatedAt, roles: [{ role, minPd, maxPd, notes }], totalMinPd, totalMaxPd, confidence }` | `Transcripts/<conversationId>/estimates.json` |
+
+**Transcripts folder convention:** One folder per `conversationId` inside the Transcripts document library. All artifacts and user-uploaded files for a presale go into `Transcripts/<conversationId>/`.
 
 ## Directory Structure
 
@@ -175,20 +225,29 @@ SHAREPOINT_DRIVE_ID=<value>
 **Workflow ID:** `unPvfldAhlEkBcqi`  
 **File:** `orchestrator/n8n/workflows/presale-agent-workflow.json`
 
-Pipeline (7 nodes):
+Pipeline (9 nodes):
 
 1. **Teams Bot Webhook** — POST `/webhook/presale-agent`, `webhookId: presale-agent`, `responseMode: onReceived`
-2. **Prepare Input** — normalizes body → `{ userMessage, rawMessage, conversationId, callbackUrl, userName }`; inlines attachment metadata
-3. **Presale Agent** (`@n8n/n8n-nodes-langchain.agent`) — Claude Sonnet 4.6, system prompt with intake/clarification/estimation/WBS/closing lifecycle
-4. **Claude Sonnet 4.6** (`lmChatAnthropic`) — connected via `ai_languageModel`; maxTokens 4096, timeout 120 s; credential `GQ2oI4MTfb66gp8c`
+2. **Prepare Input** — normalizes body → `{ userMessage, rawMessage, conversationId, callbackUrl, userName, userId, aadObjectId, attachments }`; inlines attachment metadata into `userMessage`
+3. **Presale Agent** (`@n8n/n8n-nodes-langchain.agent`) — Claude Sonnet 4.6, system prompt with intake/clarification/estimation/WBS/closing lifecycle. Connected to 2 AI tools (Graph API Agent, SharePoint Agent).
+4. **Claude Sonnet 4.6** (`lmChatAnthropic`) — connected via `ai_languageModel`; maxTokens 4096, timeout 120 s; credential `tveGybvizLkoc6QO`
 5. **Window Buffer Memory** (`memoryBufferWindow`) — connected via `ai_memory`; `sessionKey = conversationId`; `contextWindowLength = 20`
-6. **Format Reply** — extracts `$json.output` → `{ conversationId, reply, callbackUrl }`
-7. **Teams Callback** — POST `callbackUrl` with `{ conversationId, reply }`; `continueOnFail: true`
+6. **Graph API Agent Tool** (`@n8n/n8n-nodes-langchain.toolWorkflow`) — invokes sub-workflow `P8NecHn00l4qArkW`; passes `query` (via `$fromAI`) + `conversationId`, `userName`, `aadObjectId`
+7. **SharePoint Agent Tool** (`@n8n/n8n-nodes-langchain.toolWorkflow`) — invokes sub-workflow `rDK4JWk961DRUUuP`; passes `query` (via `$fromAI`) + `conversationId`, `userName`, `attachmentsJson`
+8. **Format Reply** — extracts `$json.output` → `{ conversationId, reply, callbackUrl }`
+9. **Teams Callback** — POST `callbackUrl` with `{ conversationId, reply }`; `continueOnFail: true`
 
-> **After n8n container recreation:** credential IDs reset. Recreate "Anthropic account" (anthropicApi), then update the credential ID in the Claude Sonnet 4.6 node.
+### Tool Sub-Workflows
 
+| Workflow | ID | File | AI Model | Purpose |
+|---|---|---|---|---|
+| Graph API Agent | `P8NecHn00l4qArkW` | `graph-api-agent-workflow.json` | Haiku 4.5 | Microsoft Graph operations: user profile lookup, manager chain, org data |
+| SharePoint Agent | `rDK4JWk961DRUUuP` | `sharepoint-agent-workflow.json` | Haiku 4.5 | File upload/download in Transcripts library. Uses `Upload File via Graph API` (`@n8n/n8n-nodes-langchain.toolWorkflow` → WF `NbSxfbw80T5P6Ewh`) and native `Download File` tool (SharePoint connector) |
+| SharePoint Upload File | `NbSxfbw80T5P6Ewh` | `sharepoint-upload-file-workflow.json` | Code node only | Low-level Graph API upload: resolves Drive ID, constructs upload session, handles base64 decode |
+
+> **After n8n container recreation:** credential IDs reset. Recreate "Anthropic account" (anthropicApi) and "Microsoft SharePoint - t8lxc" credentials, then update the credential ID in all affected nodes.
 > **Archived dispatcher workflow** (SharePoint state machine, 22 nodes) is preserved in `orchestrator/n8n/_backup/presale-agent-workflow.json`.
-**Workflow files** are in `orchestrator/n8n/workflows/`.
+> **Workflow files** are in `orchestrator/n8n/workflows/`.
 
 ## n8n Webhook Contract
 

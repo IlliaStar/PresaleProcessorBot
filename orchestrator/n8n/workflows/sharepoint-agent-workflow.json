@@ -1,5 +1,6 @@
 {
   "name": "Sub - SharePoint Agent",
+  "id": "rDK4JWk961DRUUuP",
   "nodes": [
     {
       "parameters": {},
@@ -8,29 +9,16 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
       "position": [
-        250,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const required = ['conversationId', 'userName', 'query'];\nconst missing = required.filter(k => !$input.item.json[k]);\n\nif (missing.length > 0) {\n  throw new Error('SharePoint Agent: missing required parameters: ' + missing.join(', '));\n}\n\nreturn $input.item;"
-      },
-      "id": "f7e8d9c0-b1a2-4c3d-8e5f-6a7b8c9d0e1f",
-      "name": "Validate Input",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        370,
-        300
+        48,
+        304
       ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ 'conversationId=' + $json.conversationId + ', userName=' + $json.userName + '\\n\\nTask: ' + $json.query }}",
+        "text": "={{ 'conversationId=' + $json.conversationId + ', userName=' + $json.userName + ($json.attachmentsJson && $json.attachmentsJson !== '[]' ? '\\nAttachments: ' + $json.attachmentsJson : '') + '\\n\\nTask: ' + $json.query }}",
         "options": {
-          "systemMessage": "You are a SharePoint AI Agent. You manage SharePoint list items and files on behalf of the Presale Agent.\n\nYou have the following tools available:\n\nLIST ITEM OPERATIONS (provide siteId and listId as Graph API IDs):\n- Create Item: Add a new record to a list. Provide field values via the columns mapping.\n- Get Item: Retrieve a single item by its numeric item ID.\n- Get Many Items: Query items from a list. Supports OData $filter expressions (e.g. \"fields/conversationId eq 'abc'\").\n- Update Item: Modify fields of an existing item by its numeric item ID.\n- Upsert Item: Create or update an item \u00e2\u20ac\u201d useful when idempotency is required.\n- Delete Item: Remove an item permanently by its numeric item ID.\n\nFILE OPERATIONS (Document Library \u00e2\u20ac\u201d provide siteId and folderId as Graph item IDs):\n- Upload File: Write a file to a folder. Provide the file name and the binary field containing content.\n- Download File: Retrieve the binary content of a file by its Drive item ID.\n- Update File: Rename a file or replace its content.\n\nGuidelines:\n- Always prefer Get Many Items + filter over Get Item when you need to look up by a field value rather than numeric ID.\n- Report the item ID or file webUrl on successful create/upload so the caller can store the reference.\n- On errors, include the error message and the operation that failed."
+          "systemMessage": "You are a SharePoint AI Agent. You manage files in the SharePoint Document Library on behalf of the Presale Agent.\n\n## TOOLS\n\nYou have two tools:\n\n1. **Upload File via Graph API** \u2014 uploads files to SharePoint.\n   Parameters you MUST provide:\n   - folderPath (REQUIRED): folder within the Transcripts library, e.g. \"<conversationId>\". Use just the conversationId as the folder name when uploading user attachments.\n   - fileName (REQUIRED): file name with extension, e.g. \"wbs.md\"\n   - fileContent (REQUIRED): file bytes as base64 string\n   - contentType (optional): MIME type\n   - encoding (optional): set to \"base64\" for binary content\n   siteUrl is auto-filled from the environment \u2014 you do NOT need to pass it.\n\n2. **Download File** \u2014 retrieves a file by Drive item ID.\n   Parameters you MUST provide:\n   - fileId: the Drive item ID of the file\n   - folderId: the Drive item ID of the containing folder\n   site is auto-filled from the environment.\n\n## ATTACHMENT UPLOAD \u2014 DO THIS FIRST\n\nWhen the prompt contains a non-empty `attachmentsJson` (not null, not \"[]\"):\n1. Parse the JSON array. Each element has: { name, contentType, sizeBytes, content } where content is base64-encoded.\n2. For each attachment, call **Upload File via Graph API** with:\n   - folderPath = \"<conversationId>\" (use just the conversationId — uploads go to the Transcripts library directly)\n   - fileName = attachment.name\n   - fileContent = attachment.content (the base64 string as-is)\n   - encoding = \"base64\"\n   - contentType = attachment.contentType (if available)\n3. Report each uploaded file's webUrl. If any upload fails, report the error.\n\nWhen there are NO attachments, execute the caller's task query directly.\n\n## CRITICAL: PARAMETER NAMES\n\nThe Upload tool requires exact parameter names:\n- Use \"folderPath\" \u2014 NOT \"transcriptsPath\", NOT \"folder\", NOT \"path\"\n- Use \"fileName\" \u2014 NOT \"name\", NOT \"filename\"\n- Use \"fileContent\" \u2014 NOT \"content\", NOT \"data\"\n\nIf you pass wrong parameter names the upload WILL fail. Check the error message \u2014 if it says \"folderPath is required\", you passed the wrong name.\n\n## GUIDELINES\n- Always report the webUrl of successfully uploaded files.\n- On errors, include the operation that failed and the exact error message.\n- Do not invent SharePoint URLs or Drive item IDs."
         }
       },
       "id": "6c40e53a-c5f1-4389-9851-bc25b6a71e3d",
@@ -38,8 +26,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        500,
-        300
+        624,
+        304
       ]
     },
     {
@@ -56,8 +44,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
       "position": [
-        450,
-        520
+        432,
+        672
       ],
       "credentials": {
         "anthropicApi": {
@@ -68,351 +56,112 @@
     },
     {
       "parameters": {
-        "toolDescription": "Create a new item in a SharePoint list. Use this to add records to Conversations, Turns, or any other list. Provide the siteId and listId as Graph API IDs. Pass the field values as a flat JSON object \u00e2\u20ac\u201d they will be mapped automatically to list columns.",
-        "resource": "item",
-        "operation": "create",
         "site": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "list": {
-          "__rl": true,
-          "value": "={{ $fromAI('listId', 'The SharePoint list ID from Microsoft Graph API') }}",
-          "mode": "id"
-        },
-        "columns": {
-          "mappingMode": "autoMapInputData",
-          "value": {},
-          "matchingColumns": [],
-          "schema": []
-        },
-        "options": {}
-      },
-      "id": "f5e9bd11-6677-44bc-87c6-7a8e2e28325a",
-      "name": "Create Item",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        50,
-        620
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "toolDescription": "Retrieve a single SharePoint list item by its numeric item ID. Use this when you already know the exact item ID. For lookups by field value, use Get Many Items with a filter instead.",
-        "resource": "item",
-        "operation": "get",
-        "site": {
-          "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "list": {
-          "__rl": true,
-          "value": "={{ $fromAI('listId', 'The SharePoint list ID from Microsoft Graph API') }}",
-          "mode": "id"
-        },
-        "item": {
-          "__rl": true,
-          "value": "={{ $fromAI('itemId', 'The numeric SharePoint list item ID (e.g. 1, 2, 3)') }}",
-          "mode": "id"
-        },
-        "simplify": true,
-        "options": {}
-      },
-      "id": "d0e1b6f0-4a81-432d-9df1-8dfb5a2b3781",
-      "name": "Get Item",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        250,
-        620
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "toolDescription": "Query multiple items from a SharePoint list. Supports OData $filter expressions to search by field values (e.g. \"fields/conversationId eq 'abc123'\"). Use this for lookups by conversationId, status, or any other field. Returns up to the specified limit.",
-        "resource": "item",
-        "operation": "getAll",
-        "site": {
-          "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "list": {
-          "__rl": true,
-          "value": "={{ $fromAI('listId', 'The SharePoint list ID from Microsoft Graph API') }}",
-          "mode": "id"
-        },
-        "filter": "={{ $fromAI('filter', 'Optional OData filter expression, e.g. \"fields/conversationId eq \\'abc123\\'\"') }}",
-        "returnAll": false,
-        "limit": "={{ $fromAI('limit', 'Maximum number of items to return. Default 50.', 'number', 50) }}",
-        "simplify": true,
-        "options": {}
-      },
-      "id": "a1b2c3d4-e5f6-4789-8abc-123456789012",
-      "name": "Get Many Items",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        450,
-        620
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "toolDescription": "Update fields of an existing SharePoint list item by its numeric item ID. Use this to change column values on an existing record. Pass the fields to update as a flat JSON object \u00e2\u20ac\u201d they will be mapped automatically to list columns.",
-        "resource": "item",
-        "operation": "update",
-        "site": {
-          "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "list": {
-          "__rl": true,
-          "value": "={{ $fromAI('listId', 'The SharePoint list ID from Microsoft Graph API') }}",
-          "mode": "id"
-        },
-        "columns": {
-          "mappingMode": "autoMapInputData",
-          "value": {},
-          "matchingColumns": [],
-          "schema": []
-        },
-        "options": {}
-      },
-      "id": "a91b2c45-1234-5678-90ab-cdef12345678",
-      "name": "Update Item",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        650,
-        620
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "toolDescription": "Create a new list item, or update it if a matching record already exists (upsert). Useful for idempotent writes. Pass the fields as a flat JSON object \u00e2\u20ac\u201d they will be mapped automatically to list columns.",
-        "resource": "item",
-        "operation": "upsert",
-        "site": {
-          "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "list": {
-          "__rl": true,
-          "value": "={{ $fromAI('listId', 'The SharePoint list ID from Microsoft Graph API') }}",
-          "mode": "id"
-        },
-        "columns": {
-          "mappingMode": "autoMapInputData",
-          "value": {},
-          "matchingColumns": [],
-          "schema": []
-        },
-        "options": {}
-      },
-      "id": "b2c3d4e5-f6a7-4890-8bcd-234567890123",
-      "name": "Upsert Item",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        850,
-        620
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "toolDescription": "Permanently delete an item from a SharePoint list by its numeric item ID. This action cannot be undone. Use only when the item should be removed entirely.",
-        "resource": "item",
-        "operation": "delete",
-        "site": {
-          "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "list": {
-          "__rl": true,
-          "value": "={{ $fromAI('listId', 'The SharePoint list ID from Microsoft Graph API') }}",
-          "mode": "id"
-        },
-        "item": {
-          "__rl": true,
-          "value": "={{ $fromAI('itemId', 'The numeric SharePoint list item ID to delete') }}",
-          "mode": "id"
-        }
-      },
-      "id": "b12c3d4e-5678-90ab-cdef-1234567890ab",
-      "name": "Delete Item",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        1050,
-        620
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "toolDescription": "Upload a file to a SharePoint Document Library folder. Provide the target siteId, the parent folderId (Drive item ID), the desired fileName (with extension), and the name of the binary field containing the file content.",
-        "resource": "file",
-        "operation": "upload",
-        "site": {
-          "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
+          "value": "={{ $env.SHAREPOINT_SITE_URL }}",
           "mode": "url"
         },
         "folder": {
           "__rl": true,
-          "value": "={{ $fromAI('folderId', 'The Drive item ID of the target folder in the Document Library') }}",
-          "mode": "id"
-        },
-        "fileName": "={{ $fromAI('fileName', 'The file name including extension, e.g. wbs.md or estimates.json') }}",
-        "fileContents": "={{ $fromAI('fileContents', 'The name of the binary field containing the file content') }}"
-      },
-      "id": "c3d4e5f6-a7b8-4901-8cde-345678901234",
-      "name": "Upload File",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        250,
-        820
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "toolDescription": "Download a file from a SharePoint Document Library by its Drive item ID. Returns the file as binary data. Use this to read wbs.md, estimates.json, or user-uploaded PDFs from the Transcripts library.",
-        "resource": "file",
-        "operation": "download",
-        "site": {
-          "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "folder": {
-          "__rl": true,
-          "value": "={{ $fromAI('folderId', 'The Drive item ID of the folder containing the file') }}",
+          "value": "={{ $fromAI('folderId', 'The Drive item ID of the folder containing the file.') }}",
           "mode": "id"
         },
         "file": {
           "__rl": true,
           "value": "={{ $fromAI('fileId', 'The Drive item ID of the file to download') }}",
           "mode": "id"
-        }
+        },
+        "requestOptions": {}
       },
       "id": "d4e5f6a7-b8c9-4012-8def-456789012345",
       "name": "Download File",
       "type": "n8n-nodes-base.microsoftSharePointTool",
       "typeVersion": 1,
       "position": [
-        550,
-        820
+        864,
+        672
       ],
       "credentials": {
         "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
+          "id": "zPuE8vYYqzsfgvZM",
+          "name": "Microsoft SharePoint - t8lxc"
         }
       }
     },
     {
       "parameters": {
-        "toolDescription": "Update an existing file in a SharePoint Document Library \u00e2\u20ac\u201d rename it or replace its content. Provide the siteId, folderId, and fileId. Set changeFileContent to true only when replacing file bytes; provide fileContents as the binary field name in that case.",
-        "resource": "file",
-        "operation": "update",
-        "site": {
+        "description": "Upload file to SharePoint. Provide folderPath, fileName, fileContent exactly.",
+        "workflowId": {
           "__rl": true,
-          "value": "={{ $fromAI('siteId', 'The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/SiteName)') }}",
-          "mode": "url"
-        },
-        "folder": {
-          "__rl": true,
-          "value": "={{ $fromAI('folderId', 'The Drive item ID of the folder containing the file') }}",
+          "value": "NbSxfbw80T5P6Ewh",
           "mode": "id"
         },
-        "file": {
-          "__rl": true,
-          "value": "={{ $fromAI('fileId', 'The Drive item ID of the file to update') }}",
-          "mode": "id"
-        },
-        "fileName": "={{ $fromAI('newFileName', 'Optional new file name. Leave empty to keep the current name.') }}",
-        "changeFileContent": "={{ $fromAI('changeFileContent', 'Set to true to replace the file content, false to only rename', 'boolean', false) }}",
-        "fileContents": "={{ $fromAI('fileContents', 'Binary field name with new content. Required only when changeFileContent is true.') }}"
-      },
-      "id": "e5f6a7b8-c9d0-4123-9efa-567890123456",
-      "name": "Update File",
-      "type": "n8n-nodes-base.microsoftSharePointTool",
-      "typeVersion": 1,
-      "position": [
-        850,
-        820
-      ],
-      "credentials": {
-        "microsoftSharePointOAuth2Api": {
-          "id": "TMsE638TJIXdcIF6",
-          "name": "Microsoft SharePoint - Presale Agent"
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "folderPath": "={{ $fromAI('folderPath', 'The destination folder within the Transcripts library, e.g. <conversationId>', 'string') }}",
+            "fileName": "={{ $fromAI('fileName', 'The file name including extension, e.g. wbs.md or estimates.json', 'string') }}",
+            "fileContent": "={{ $fromAI('fileContent', 'The file content as plain text or a base64-encoded string for binary files', 'string') }}",
+            "siteUrl": "={{ $env.SHAREPOINT_SITE_URL }}",
+            "siteUrlEnv": "={{ $env.SHAREPOINT_SITE_URL }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "folderPath",
+              "displayName": "folderPath",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fileName",
+              "displayName": "fileName",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fileContent",
+              "displayName": "fileContent",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
         }
-      }
-    }
-  ],
-  "pinData": {},
-  "connections": {
-    "Execute Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "Validate Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
+      },
+      "id": "4d5e6f7a-8b9c-4013-cdef-012345678901",
+      "name": "Upload File via Graph API",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        672
       ]
     },
-    "Validate Input": {
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = ($input.first().json.output || '').trim();\n\nconst opPatterns = [\n  { type: 'upload',   re: /upload|creat|wrote|saved|added/i },\n  { type: 'download', re: /download|retriev|read|fetch/i },\n];\nlet operation = 'unknown';\nfor (const p of opPatterns) {\n  if (p.re.test(agentOutput)) { operation = p.type; break; }\n}\n\nconst webUrlMatch = agentOutput.match(/https?:\\/\\/[^\\s\"'<>]*sharepoint[^\\s\"'<>]*/i);\nconst webUrl = webUrlMatch ? webUrlMatch[0].replace(/[.,;)]+$/, '') : null;\n\n// Only throw if the agent explicitly reports a tool-level failure \u2014 not for general error words in its own reasoning\nconst isToolError = /Upload failed|Download failed|error:\\s+(siteUrl|folderPath|fileName|fileContent|401|403|404|500)/i.test(agentOutput);\n\nif (isToolError) {\n  return [{\n    json: {\n      success: false,\n      operation,\n      webUrl,\n      error: agentOutput,\n      agentMessage: agentOutput,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    operation,\n    webUrl,\n    agentMessage: agentOutput,\n  }\n}];"
+      },
+      "id": "b2c3d4e5-f6a7-4890-bcde-f01234567890",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
       "main": [
         [
           {
@@ -423,90 +172,12 @@
         ]
       ]
     },
-
     "Claude Haiku 4.5": {
       "ai_languageModel": [
         [
           {
             "node": "SharePoint AI Agent",
             "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Item": {
-      "ai_tool": [
-        [
-          {
-            "node": "SharePoint AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Item": {
-      "ai_tool": [
-        [
-          {
-            "node": "SharePoint AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Many Items": {
-      "ai_tool": [
-        [
-          {
-            "node": "SharePoint AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Item": {
-      "ai_tool": [
-        [
-          {
-            "node": "SharePoint AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upsert Item": {
-      "ai_tool": [
-        [
-          {
-            "node": "SharePoint AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Delete Item": {
-      "ai_tool": [
-        [
-          {
-            "node": "SharePoint AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upload File": {
-      "ai_tool": [
-        [
-          {
-            "node": "SharePoint AI Agent",
-            "type": "ai_tool",
             "index": 0
           }
         ]
@@ -523,7 +194,7 @@
         ]
       ]
     },
-    "Update File": {
+    "Upload File via Graph API": {
       "ai_tool": [
         [
           {
@@ -533,10 +204,20 @@
           }
         ]
       ]
+    },
+    "SharePoint AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1"
-  },
-  "id": "rDK4JWk961DRUUuP"
+  }
 }

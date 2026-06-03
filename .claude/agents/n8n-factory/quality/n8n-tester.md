@@ -37,13 +37,28 @@ Report `status: "log_unavailable"` and return immediately — do not attempt to 
 
 ---
 
-## Step 2 — Check for execution errors
+## Step 2 — Analyze every node result
 
-If `status === "error"`:
+For **every** node in `runData` (regardless of overall status), extract and report:
 
-Scan `runData` for every node entry where `run.error` is present. Report **all** failing nodes.
+### 2a — Per-node summary table
 
-For each failing node extract:
+Build a table with one row per node in execution order:
+
+| # | Node | Type | Status | Items Out | Duration (ms) | Notes |
+|---|------|------|--------|-----------|---------------|-------|
+
+- **#**: execution index (order nodes appear in runData)
+- **Node**: node name
+- **Type**: `nodeType` from workflow JSON (match by name)
+- **Status**: `success` | `error` | `skipped` (no runData entry)
+- **Items Out**: count of `run.data.main[0]` items (or `0` if error/missing)
+- **Duration (ms)**: `run.executionTime` (ms) if present, else `startTime`→`endTime` delta
+- **Notes**: first 120 chars of `run.error.message` if errored; `"no items"` if Items Out = 0 on a success node; empty otherwise
+
+### 2b — Failing nodes detail
+
+For each node where `run.error` is present:
 - `node`: node name
 - `message`: `run.error.message`
 - `nodeType`: from the workflow JSON nodes array (match by name)
@@ -92,15 +107,24 @@ For each mismatch extract:
 
 ## Step 4 — Return structured report
 
+Always include the per-node table from Step 2a. Then include errors and/or mismatches.
+
 ### PASS
 ```json
 {
   "pass": true,
   "executionId": "143",
   "durationMs": 4100,
+  "nodeResults": [
+    { "index": 0, "node": "Teams Bot Webhook", "type": "n8n-nodes-base.webhook",     "status": "success", "itemsOut": 1, "durationMs": 12  },
+    { "index": 1, "node": "Prepare Input",     "type": "n8n-nodes-base.code",        "status": "success", "itemsOut": 1, "durationMs": 8   },
+    { "index": 2, "node": "Presale Agent",     "type": "n8n-nodes-langchain.agent",  "status": "success", "itemsOut": 1, "durationMs": 3900},
+    { "index": 3, "node": "Format Reply",      "type": "n8n-nodes-base.set",         "status": "success", "itemsOut": 1, "durationMs": 5   },
+    { "index": 4, "node": "Teams Callback",    "type": "n8n-nodes-base.httpRequest", "status": "success", "itemsOut": 1, "durationMs": 175 }
+  ],
   "errors": [],
   "outputMismatches": [],
-  "summary": "PASS — execution completed in 4.1 s, output matched expected"
+  "summary": "PASS — execution completed in 4.1 s, all 5 nodes succeeded, output matched expected"
 }
 ```
 
@@ -110,6 +134,12 @@ For each mismatch extract:
   "pass": false,
   "executionId": "142",
   "durationMs": 1100,
+  "nodeResults": [
+    { "index": 0, "node": "Teams Bot Webhook", "type": "n8n-nodes-base.webhook",     "status": "success", "itemsOut": 1, "durationMs": 10 },
+    { "index": 1, "node": "Prepare Input",     "type": "n8n-nodes-base.code",        "status": "success", "itemsOut": 1, "durationMs": 7  },
+    { "index": 2, "node": "Fetch User Data",   "type": "n8n-nodes-base.httpRequest", "status": "error",   "itemsOut": 0, "durationMs": 83, "notes": "Request failed with status 401" },
+    { "index": 3, "node": "Format Reply",      "type": "n8n-nodes-base.set",         "status": "skipped", "itemsOut": 0, "durationMs": 0  }
+  ],
   "errors": [
     {
       "node": "Fetch User Data",
@@ -120,7 +150,7 @@ For each mismatch extract:
     }
   ],
   "outputMismatches": [],
-  "summary": "FAIL — execution error in 'Fetch User Data' (status 401)"
+  "summary": "FAIL — execution error in 'Fetch User Data' (status 401); nodes after it were skipped"
 }
 ```
 
@@ -130,6 +160,12 @@ For each mismatch extract:
   "pass": false,
   "executionId": "144",
   "durationMs": 3800,
+  "nodeResults": [
+    { "index": 0, "node": "Teams Bot Webhook", "type": "n8n-nodes-base.webhook",    "status": "success", "itemsOut": 1, "durationMs": 11   },
+    { "index": 1, "node": "Prepare Input",     "type": "n8n-nodes-base.code",       "status": "success", "itemsOut": 1, "durationMs": 9    },
+    { "index": 2, "node": "Presale Agent",     "type": "n8n-nodes-langchain.agent", "status": "success", "itemsOut": 1, "durationMs": 3600 },
+    { "index": 3, "node": "Format Reply",      "type": "n8n-nodes-base.set",        "status": "success", "itemsOut": 1, "durationMs": 6, "notes": "no items" }
+  ],
   "errors": [],
   "outputMismatches": [
     {
