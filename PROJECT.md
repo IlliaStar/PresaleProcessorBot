@@ -85,37 +85,21 @@ All presale data lives in SharePoint Online, accessed via Microsoft Graph API.
 
 **Site:** `Presale Agent Bot` at `https://<tenant>.sharepoint.com/sites/PresaleAgentBot`
 
-### List: Conversations
+### List: Presales
 
-One item per presale conversation/project. Tracks lifecycle state, participants, and summary metadata.
-
-| Column | Type | Purpose |
-|---|---|---|
-| `conversationId` | Text (unique, indexed) | Primary key |
-| `userId` / `userName` / `channelId` | Text | Requester identity |
-| `currentStep` | Choice | Lifecycle position (new/intake/clarification/estimation/review/completed) |
-| `status` | Choice | Active / Archived |
-| `createdAt` / `modifiedAt` | DateTime | Audit timestamps |
-| `clarificationTurns` | Number | Forced-advance counter (≥5 triggers auto-advance) |
-| `summary` | Multi-line text | LLM-maintained one-paragraph project summary |
-| `wbsArtifactRef` | Hyperlink | Link to wbs.md in Transcripts |
-| `lastTurnNo` | Number | Monotonic turn counter for ordering |
-
-### List: Turns
-
-One item per message in a conversation. Full audit trail of every interaction.
+One item per presale opportunity. Contains all intake data, status, and estimates in a single record.
 
 | Column | Type | Purpose |
 |---|---|---|
-| `conversationId` | Text (indexed) | Foreign key to Conversations |
-| `turnNo` | Number (indexed) | Monotonic per conversation |
-| `role` | Choice | user / assistant |
-| `step` | Choice | Lifecycle step at time of turn |
-| `intent` | Text | Classifier output (user turns only) |
-| `text` | Multi-line text | Message body (SP limit: ~63K chars) |
-| `ts` | DateTime | Turn timestamp |
-| `overflowRef` | Hyperlink | Points to transcript-overflow-<n>.md when text exceeds 63K chars |
-| `attachmentsJson` | Multi-line text | JSON array: [{name, contentType, sizeBytes}] |
+| `Title` | Text | Presale ID/name (e.g. `[PR-2026-001] CRM implementation for Client X`) |
+| `Client` | Choice | Client name |
+| `Status` | Choice | Draft / In Progress / Submitted / Won / Lost / Paused |
+| `PresaleArchitect` | Person or Group | Assigned architect / lead |
+| `Budget` | Currency | Estimated budget |
+| `Deadline` | DateTime | Proposal submission due date |
+| `Description` | Multi-line text | Scope description and business context |
+| `TechStack` | MultiChoice | Technology stack (Power Platform, Azure, .NET, JS/TS, Python, Java, DevOps, AI/ML) |
+| `ProposalLink` | Hyperlink | Link to final proposal document |
 
 ### Document Library: Transcripts
 
@@ -158,7 +142,7 @@ One folder per `conversationId`, containing:
                                      ▼                   ▼
                               ┌─────────────────────────────────────┐
                               │        SharePoint Online            │
-                              │  Lists: Conversations, Turns        │
+                              │  List: Presales                     │
                               │  Library: Transcripts               │
                               └─────────────────────────────────────┘
 ```
@@ -191,7 +175,7 @@ One folder per `conversationId`, containing:
 
 - **Fire-and-forget from bot**: Bot sends payload to n8n with 10s timeout; n8n processes asynchronously and POSTs result to `/proactive` callback endpoint.
 - **SharePoint over in-memory state**: Restart-safe, auditable via SP UI, no per-topic memory isolation issues. Trade-off: ~100-300ms Graph API latency per turn.
-- **Turns as List (not file-based)**: No GET-then-PUT race conditions on append, queryable/filterable in SP UI, structured per-turn metadata with overflow handling.
+- **Presales list (not Conversations + Turns)**: Single-record schema with all intake fields, status workflow, budget, tech stack, and architect. No join needed.
 - **Explicit state machine over LLM routing**: Deterministic, easy to audit, fewer LLM calls. Intent classifier provides hints; routing rules make final decisions.
 - **SharePoint-first identity**: Uses existing Microsoft 365 identities; no separate user database.
 
@@ -202,8 +186,7 @@ Lists and libraries are defined as PnP ListInstance XML fragments and deployed v
 ```
 integrations/sharepoint/
   data/
-    conversations-list.xml    # Conversations list schema
-    turns-list.xml            # Turns list schema
+    presales-list.xml          # Presales list schema
     transcripts-library.xml   # Document library schema
   deployment/
     provisioning.xml          # Root PnP template (assembles fragments via xi:include)

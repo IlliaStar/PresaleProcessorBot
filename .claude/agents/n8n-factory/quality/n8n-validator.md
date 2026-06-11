@@ -72,11 +72,7 @@ mcp__n8n-mcp__validate_workflow({ workflow: <parsed JSON object> })
 ```
 Covers: structure, connections, expression references, typeVersions, AI typed connections.
 
-**1b. Instance validator** (run if workflow is already deployed):
-```
-mcp__n8n-mcp__n8n_validate_workflow({ id: "<workflowId>" })
-```
-Skip gracefully if offline or not yet deployed — note in `info[]`.
+(Instance-side validation is not available via MCP — the orchestrator will handle runtime validation via the runner/tester cycle.)
 
 All findings from MCP tools are **authoritative** — include them verbatim, do not re-derive.
 
@@ -200,12 +196,7 @@ List all referenced vars with their resolution status.
 
 ## Step 9 — Webhook path uniqueness
 
-```
-mcp__n8n-mcp__n8n_list_workflows()
-```
-
-Check the `webhookId` or path of every webhook trigger node against all active workflows.  
-If the same path is already registered in another active workflow → **error** (will conflict on deploy).
+(Orchestrator is responsible for ensuring webhook path uniqueness across workflows. The validator checks the local file only — if `webhookId` exists, flag it in `info[]` with a reminder to verify uniqueness at deploy time.)
 
 ---
 

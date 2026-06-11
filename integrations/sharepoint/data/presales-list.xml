@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pnp:ListInstance xmlns:pnp="http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema" Title="Presales"
+                          Description="One item per presale opportunity"
+                          TemplateType="100"
+                          Url="Lists/Presales"
+                          EnableVersioning="true"
+                          OnQuickLaunch="true">
+  <pnp:ContentTypeBindings>
+    <pnp:ContentTypeBinding ContentTypeID="0x01" Default="true" />
+  </pnp:ContentTypeBindings>
+  <pnp:Fields>
+    <!-- 1. Client -->
+    <pnp:Field Type="Choice"
+                       Name="Client"
+                       DisplayName="Client"
+                       Required="FALSE"
+                       ID="{D3A9F345-98AE-43F4-9936-699938717741}">
+      <CHOICES>
+        <CHOICE>Client A</CHOICE>
+        <CHOICE>Client B</CHOICE>
+        <CHOICE>Other</CHOICE>
+      </CHOICES>
+    </pnp:Field>
+    <!-- 2. Status — Draft, In Progress, Submitted, Won, Lost, Paused -->
+    <pnp:Field Type="Choice"
+                       Name="Status"
+                       DisplayName="Status"
+                       Required="TRUE"
+                       Default="Draft"
+                       ID="{6712C1EC-25ED-4ED7-B07A-FB6A0D3783FB}">
+      <CHOICES>
+        <CHOICE>Draft</CHOICE>
+        <CHOICE>In Progress</CHOICE>
+        <CHOICE>Submitted</CHOICE>
+        <CHOICE>Won</CHOICE>
+        <CHOICE>Lost</CHOICE>
+        <CHOICE>Paused</CHOICE>
+      </CHOICES>
+    </pnp:Field>
+    <!-- 3. PresaleArchitect — Person or Group -->
+    <pnp:Field Type="User"
+                       Name="PresaleArchitect"
+                       DisplayName="Presale Architect"
+                       Required="FALSE"
+                       UserSelectionMode="PeopleOnly"
+                       UserSelectionScope="0"
+                       ID="{53382487-A9EE-421B-80F4-F33099A1F64A}" />
+    <!-- 4. Budget — Currency (USD default) -->
+    <pnp:Field Type="Currency"
+                       Name="Budget"
+                       DisplayName="Budget"
+                       Required="FALSE"
+                       Decimals="2"
+                       CurrencyLocaleID="1033"
+                       ID="{5A69B515-4659-45E6-8A35-299794F30A00}" />
+    <!-- 5. Deadline — Date and Time -->
+    <pnp:Field Type="DateTime"
+                       Name="Deadline"
+                       DisplayName="Deadline"
+                       Required="FALSE"
+                       Format="DateOnly"
+                       ID="{DC2BF40A-A310-4E9D-856A-2B99B14E74D5}" />
+    <!-- 6. Description — Multiple lines of plain text -->
+    <pnp:Field Type="Note"
+                       Name="Description"
+                       DisplayName="Description"
+                       Required="FALSE"
+                       RichText="FALSE"
+                       ID="{FF9A2768-68ED-46D3-B32C-A9216639C11F}" />
+    <!-- 7. TechStack — Multi-choice selection -->
+    <pnp:Field Type="MultiChoice"
+                       Name="TechStack"
+                       DisplayName="Tech Stack"
+                       Required="FALSE"
+                       ID="{C998D02D-910A-4FEE-A346-160B876C7B7E}">
+      <CHOICES>
+        <CHOICE>Power Platform</CHOICE>
+        <CHOICE>Azure</CHOICE>
+        <CHOICE>.NET</CHOICE>
+        <CHOICE>JavaScript / TypeScript</CHOICE>
+        <CHOICE>Python</CHOICE>
+        <CHOICE>Java</CHOICE>
+        <CHOICE>DevOps / CI/CD</CHOICE>
+        <CHOICE>AI / ML</CHOICE>
+        <CHOICE>Other</CHOICE>
+      </CHOICES>
+    </pnp:Field>
+    <!-- 8. ProposalLink — Hyperlink -->
+    <pnp:Field Type="URL"
+                       Name="ProposalLink"
+                       DisplayName="Proposal Link"
+                       Required="FALSE"
+                       Format="Hyperlink"
+                       ID="{18FEC0AD-C933-4C2C-8AB3-5CC650777270}" />
+  </pnp:Fields>
+  <pnp:Views>
+    <pnp:View DefaultView="TRUE" MobileDefaultView="TRUE" MobileView="TRUE"
+                      Name="All Presales" DisplayName="All Presales"
+                      Type="HTML" Url="Lists/Presales/AllItems.aspx">
+      <ViewFields>
+        <FieldRef Name="Title" />
+        <FieldRef Name="Client" />
+        <FieldRef Name="Status" />
+        <FieldRef Name="PresaleArchitect" />
+        <FieldRef Name="Budget" />
+        <FieldRef Name="Deadline" />
+        <FieldRef Name="TechStack" />
+      </ViewFields>
+      <Query>
+        <OrderBy>
+          <FieldRef Name="Deadline" Ascending="TRUE" />
+        </OrderBy>
+      </Query>
+    </pnp:View>
+  </pnp:Views>
+</pnp:ListInstance>

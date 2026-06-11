@@ -5,3 +5,4 @@ devtunnel.log
 .n8n/
 .claude/settings.local.json
 /_backup/
+.vscode/

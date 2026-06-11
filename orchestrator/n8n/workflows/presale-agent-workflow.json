@@ -12,7 +12,10 @@
       "name": "Teams Bot Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [208, 304],
+      "position": [
+        208,
+        304
+      ],
       "webhookId": "presale-agent"
     },
     {
@@ -23,21 +26,27 @@
       "name": "Prepare Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [432, 304]
+      "position": [
+        432,
+        304
+      ]
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ '[Context] aadObjectId=' + $json.aadObjectId + ', userName=' + $json.userName + '\\n\\n' + $json.userMessage }}",
         "options": {
-          "systemMessage": "You are an expert Presale Processing Agent for EPAM Systems.\n\nYour mission: Help sales teams analyze inbound presale requests, ask smart clarifying questions, produce effort estimates, and generate structured Work Breakdown Structures.\n\n## Conversation Lifecycle\n1. **Intake** — Acknowledge the request; identify what is needed to estimate\n2. **Clarification** — Ask 2–3 targeted questions if requirements are vague\n3. **Estimation** — Produce a structured effort estimate table by role\n4. **WBS** — Generate a Markdown WBS when estimates are confirmed or requested\n5. **Closing** — Acknowledge approval (\"approve\", \"confirm\", \"ship it\", \"одобряю\", \"подтверждаю\")\n\n## Estimate Table Format\n| Role     | Min (pd) | Max (pd) | Notes |\n|----------|----------|----------|---------|\n| BA       | ...      | ...      | ...     |\n| Backend  | ...      | ...      | ...     |\n| Frontend | ...      | ...      | ...     |\n| QA       | ...      | ...      | ...     |\n| DevOps   | ...      | ...      | ...     |\n| PM       | ...      | ...      | ...     |\n**Total: X–Y person-days** | Confidence: Low / Medium / High\n\n## Guidelines\n- Be professional and concise; use Markdown formatting\n- Ask at most 3 questions at a time\n- Respond in the same language the user writes in (English or Russian)\n- When the user message contains [User uploaded file: ...] annotations, the user has just sent you a new file. The binary content is ALREADY in the system — do NOT ask for a fileId, URL, or any identifier. You MUST immediately call the SharePoint Agent Tool with query: \"Upload the attached files to the Transcripts library under folder <conversationId>\". NEVER use the Download File tool in response to an upload annotation.\n- After the upload completes, acknowledge it briefly and extract relevant requirements from the file name and context.\n\n- Engage in casual, polite, and helpful professional conversation.\n- Answer general questions using your internal knowledge.\n- Discuss presale concepts, technologies, or methodology without triggerring any enterprise automation tools.\n- DO NOT invoke tools if the user is just saying hello, asking \"how are you\", or asking abstract questions (e.g., \"What is the best tech stack for e-commerce?\").\n- If the user talks about a potential deal but hasn't explicitly asked to log it or process it yet, guide the conversation naturally and ask if they are ready to initiate the presale workflow.\n"
+          "systemMessage": "You are an expert Presale Processing Agent for EPAM Systems.\\n\\nYour mission: Help sales teams analyze inbound presale requests, ask smart clarifying questions, produce effort estimates, and generate structured Work Breakdown Structures.\\n\\n## Conversation Lifecycle\\n1. **Intake** — Acknowledge the request; identify what is needed to estimate\\n2. **Clarification** — Ask 2–3 targeted questions if requirements are vague\\n3. **Estimation** — Produce a structured effort estimate table by role\\n4. **WBS** — Generate a Markdown WBS when estimates are confirmed or requested\\n5. **Closing** — Acknowledge approval (\"approve\", \"confirm\", \"ship it\", \"одобряю\", \"подтверждаю\")\\n\\n## Estimate Table Format\\n| Role     | Min (pd) | Max (pd) | Notes |\\n|----------|----------|----------|---------|\\n| BA       | ...      | ...      | ...     |\\n| Backend  | ...      | ...      | ...     |\\n| Frontend | ...      | ...      | ...     |\\n| QA       | ...      | ...      | ...     |\\n| DevOps   | ...      | ...      | ...     |\\n| PM       | ...      | ...      | ...     |\\n**Total: X–Y person-days** | Confidence: Low / Medium / High\\n\\n## Guidelines\\n- Be professional and concise; use Markdown formatting\\n- Ask at most 3 questions at a time\\n- Respond in the same language the user writes in (English or Russian)\\n\\n- Engage in casual, polite, and helpful professional conversation.\\n- Answer general questions using your internal knowledge.\\n- Discuss presale concepts, technologies, or methodology without triggerring any enterprise automation tools.\\n- DO NOT invoke tools if the user is just saying hello, asking \"how are you\", or asking abstract questions (e.g., \"What is the best tech stack for e-commerce?\").\\n- If the user talks about a potential deal but hasn't explicitly asked to log it or process it yet, guide the conversation naturally and ask if they are ready to initiate the presale workflow.\\n\\n## Presale Selection & Creation\\n- Before starting intake or estimation, check if there is already a selected presale in the conversation context (e.g., a `currentPresaleId` or selected presale name).\\n- **If no presale is currently selected**, ASK the user whether they want to:\\n  1. **Create a new presale** — Use the SharePoint Agent Tool with query: \"Create a new presale item in the Presales list with Title combining the client name and system name, e.g., '[Client] — [System] implementation'\". Suggest a specific title based on what you've already discussed (e.g., client company + target system).\\n  2. **Select an existing presale** — Use the SharePoint Agent Tool with query: \"List all items from the Presales list with their Title and Status\". Present the list to the user and ask which one they want to work on.\\n- Once a presale is selected or created, remember it as the current context for the remainder of the conversation.\\n- If the user wants to switch to a different presale later, repeat this process."
         }
       },
       "id": "a1b2c3d4-0003-4000-8000-100000000003",
       "name": "Presale Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [656, 304]
+      "position": [
+        656,
+        304
+      ]
     },
     {
       "parameters": {
@@ -52,7 +61,10 @@
       "name": "Claude Sonnet 4.6",
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
-      "position": [544, 528],
+      "position": [
+        544,
+        528
+      ],
       "credentials": {
         "anthropicApi": {
           "id": "tveGybvizLkoc6QO",
@@ -70,7 +82,10 @@
       "name": "Window Buffer Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
-      "position": [704, 624]
+      "position": [
+        704,
+        624
+      ]
     },
     {
       "parameters": {
@@ -80,7 +95,10 @@
       "name": "Format Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 304]
+      "position": [
+        880,
+        304
+      ]
     },
     {
       "parameters": {
@@ -105,7 +123,10 @@
       "name": "Teams Callback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1104, 304],
+      "position": [
+        1104,
+        304
+      ],
       "continueOnFail": true
     },
     {
@@ -127,10 +148,42 @@
           },
           "matchingColumns": [],
           "schema": [
-            {"id": "query", "displayName": "query", "required": true, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
-            {"id": "conversationId", "displayName": "conversationId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
-            {"id": "userName", "displayName": "userName", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
-            {"id": "aadObjectId", "displayName": "aadObjectId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false}
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "conversationId",
+              "displayName": "conversationId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "userName",
+              "displayName": "userName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "aadObjectId",
+              "displayName": "aadObjectId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
           ]
         }
       },
@@ -138,7 +191,10 @@
       "name": "Graph API Agent Tool",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [896, 528]
+      "position": [
+        896,
+        528
+      ]
     },
     {
       "parameters": {
@@ -159,10 +215,42 @@
           },
           "matchingColumns": [],
           "schema": [
-            {"id": "query", "displayName": "query", "required": true, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
-            {"id": "conversationId", "displayName": "conversationId", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
-            {"id": "userName", "displayName": "userName", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
-            {"id": "attachmentsJson", "displayName": "attachmentsJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false}
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "conversationId",
+              "displayName": "conversationId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "userName",
+              "displayName": "userName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "attachmentsJson",
+              "displayName": "attachmentsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
           ]
         }
       },
@@ -170,33 +258,100 @@
       "name": "SharePoint Agent Tool",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [1056, 528]
+      "position": [
+        1056,
+        528
+      ]
     }
   ],
   "connections": {
     "Teams Bot Webhook": {
-      "main": [[{"node": "Prepare Input", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Input": {
-      "main": [[{"node": "Presale Agent", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Presale Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Claude Sonnet 4.6": {
-      "ai_languageModel": [[{"node": "Presale Agent", "type": "ai_languageModel", "index": 0}]]
+      "ai_languageModel": [
+        [
+          {
+            "node": "Presale Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Window Buffer Memory": {
-      "ai_memory": [[{"node": "Presale Agent", "type": "ai_memory", "index": 0}]]
+      "ai_memory": [
+        [
+          {
+            "node": "Presale Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Graph API Agent Tool": {
-      "ai_tool": [[{"node": "Presale Agent", "type": "ai_tool", "index": 0}]]
+      "ai_tool": [
+        [
+          {
+            "node": "Presale Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SharePoint Agent Tool": {
-      "ai_tool": [[{"node": "Presale Agent", "type": "ai_tool", "index": 0}]]
+      "ai_tool": [
+        [
+          {
+            "node": "Presale Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Presale Agent": {
-      "main": [[{"node": "Format Reply", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Format Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Format Reply": {
-      "main": [[{"node": "Teams Callback", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Teams Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {

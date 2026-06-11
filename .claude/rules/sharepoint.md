@@ -12,8 +12,7 @@ Provisions and manages the SharePoint Online state store for the Presale Agent B
 
 ```
 data/                        # PnP ListInstance fragments (xi:include targets)
-  conversations-list.xml     # Conversations list schema
-  turns-list.xml             # Turns list schema
+  presales-list.xml          # Presales list schema
   transcripts-library.xml    # Transcripts document library schema
 deployment/
   provisioning.xml           # Root PnP template — xi:include assembles data/ fragments

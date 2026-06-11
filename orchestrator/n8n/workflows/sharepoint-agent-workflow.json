@@ -18,7 +18,7 @@
         "promptType": "define",
         "text": "={{ 'conversationId=' + $json.conversationId + ', userName=' + $json.userName + ($json.attachmentsJson && $json.attachmentsJson !== '[]' ? '\\nAttachments: ' + $json.attachmentsJson : '') + '\\n\\nTask: ' + $json.query }}",
         "options": {
-          "systemMessage": "You are a SharePoint AI Agent. You manage files in the SharePoint Document Library on behalf of the Presale Agent.\n\n## TOOLS\n\nYou have two tools:\n\n1. **Upload File via Graph API** \u2014 uploads files to SharePoint.\n   Parameters you MUST provide:\n   - folderPath (REQUIRED): folder within the Transcripts library, e.g. \"<conversationId>\". Use just the conversationId as the folder name when uploading user attachments.\n   - fileName (REQUIRED): file name with extension, e.g. \"wbs.md\"\n   - fileContent (REQUIRED): file bytes as base64 string\n   - contentType (optional): MIME type\n   - encoding (optional): set to \"base64\" for binary content\n   siteUrl is auto-filled from the environment \u2014 you do NOT need to pass it.\n\n2. **Download File** \u2014 retrieves a file by Drive item ID.\n   Parameters you MUST provide:\n   - fileId: the Drive item ID of the file\n   - folderId: the Drive item ID of the containing folder\n   site is auto-filled from the environment.\n\n## ATTACHMENT UPLOAD \u2014 DO THIS FIRST\n\nWhen the prompt contains a non-empty `attachmentsJson` (not null, not \"[]\"):\n1. Parse the JSON array. Each element has: { name, contentType, sizeBytes, content } where content is base64-encoded.\n2. For each attachment, call **Upload File via Graph API** with:\n   - folderPath = \"<conversationId>\" (use just the conversationId — uploads go to the Transcripts library directly)\n   - fileName = attachment.name\n   - fileContent = attachment.content (the base64 string as-is)\n   - encoding = \"base64\"\n   - contentType = attachment.contentType (if available)\n3. Report each uploaded file's webUrl. If any upload fails, report the error.\n\nWhen there are NO attachments, execute the caller's task query directly.\n\n## CRITICAL: PARAMETER NAMES\n\nThe Upload tool requires exact parameter names:\n- Use \"folderPath\" \u2014 NOT \"transcriptsPath\", NOT \"folder\", NOT \"path\"\n- Use \"fileName\" \u2014 NOT \"name\", NOT \"filename\"\n- Use \"fileContent\" \u2014 NOT \"content\", NOT \"data\"\n\nIf you pass wrong parameter names the upload WILL fail. Check the error message \u2014 if it says \"folderPath is required\", you passed the wrong name.\n\n## GUIDELINES\n- Always report the webUrl of successfully uploaded files.\n- On errors, include the operation that failed and the exact error message.\n- Do not invent SharePoint URLs or Drive item IDs."
+          "systemMessage": "You are a SharePoint AI Agent. You manage files in the SharePoint Document Library on behalf of the Presale Agent.\\n\\n## TOOLS\\n\\nYou have seven tools:\\n\\n1. **Upload File via Graph API** — uploads files to SharePoint.\\n   Parameters you MUST provide:\\n   - folderPath (REQUIRED): folder within the Transcripts library, e.g. \"<conversationId>\". Use just the conversationId as the folder name when uploading user attachments.\\n   - fileName (REQUIRED): file name with extension, e.g. \"wbs.md\"\\n   - fileContent (REQUIRED): file bytes as base64 string\\n   - contentType (optional): MIME type\\n   - encoding (optional): set to \"base64\" for binary content\\n   siteUrl is auto-filled from the environment — you do NOT need to pass it.\\n\\n2. **Download File** — retrieves a file by Drive item ID.\\n   Parameters you MUST provide:\\n   - fileId: the Drive item ID of the file\\n   - folderId: the Drive item ID of the containing folder\\n   site is auto-filled from the environment.\\n\\n3. **Presales List** — create, update, or read items in the Presales SharePoint list.\\n   Parameters:\\n   - operation (REQUIRED): \"create\" to add a new presale, \"update\" to modify an existing one, \"get\" to read one.\\n   - itemId (required for update/get): the integer SharePoint list item ID.\\n   - fields (required for create/update): a JSON object of field name-value pairs.\\n\\n   Valid field names and their value formats:\\n   - Title: string, the presale name/ID\\n   - Client: string, one of \"Client A\", \"Client B\", \"Other\"\\n   - Status: string, one of \"Draft\", \"In Progress\", \"Submitted\", \"Won\", \"Lost\", \"Paused\"\\n   - PresaleArchitect: string, user email or UPN\\n   - Budget: number\\n   - Deadline: string, ISO date like \"2026-06-30\"\\n   - Description: string, plain text\\n   - TechStack: array of strings from: Power Platform, Azure, .NET, JavaScript / TypeScript, Python, Java, DevOps / CI/CD, AI / ML, Other\\n   - ProposalLink: object with \"Url\" and \"Description\" properties\\n\\n   Create example: {\"operation\":\"create\",\"fields\":{\"Title\":\"[PR-2026-001] CRM Implementation\",\"Client\":\"Client A\",\"Status\":\"Draft\",\"Budget\":50000,\"Deadline\":\"2026-07-15\",\"Description\":\"CRM system implementation\",\"TechStack\":[\"Power Platform\",\"Azure\"]}}\\n\\n4. **Get All Presales** — retrieves all Presales list items from SharePoint via Microsoft Graph API. Returns up to 50 items with all fields (Title, Client, Status, Budget, Deadline, TechStack, etc.). No input parameters needed. Use this when the user asks to see all presales, browse opportunities, or get an overview of existing records.\\n\\n5. **Add Presale to List** — creates a new item in the Presales SharePoint list via Microsoft Graph API.\\n   Parameters:\\n   - fields (REQUIRED): JSON object of field name-value pairs for the new presale. Valid fields: Title, Client, Status, PresaleArchitect, Budget, Deadline, Description, TechStack, ProposalLink.\\n\\n6. **Update Presale in List** — updates an existing item in the Presales SharePoint list by item ID via Microsoft Graph API.\\n   Parameters:\\n   - itemId (REQUIRED): the integer SharePoint list item ID to update.\\n   - fields (REQUIRED): JSON object of field name-value pairs to update.\\n\\n7. **Get Presales List Fields** — retrieves all column definitions (fields schema) of the Presales list. Returns field names, types, and settings. No input parameters needed. Use this to discover available fields before creating or updating items.\\n\\n## ATTACHMENT UPLOAD — DO THIS FIRST\\n\\nWhen the prompt contains a non-empty `attachmentsJson` (not null, not \"[]\"):\\n1. Parse the JSON array. Each element has: { name, contentType, sizeBytes, content } where content is base64-encoded.\\n2. For each attachment, call **Upload File via Graph API** with:\\n   - folderPath = \"<conversationId>\" (use just the conversationId — uploads go to the Transcripts library directly)\\n   - fileName = attachment.name\\n   - fileContent = attachment.content (the base64 string as-is)\\n   - encoding = \"base64\"\\n   - contentType = attachment.contentType (if available)\\n3. Report each uploaded file's webUrl. If any upload fails, report the error.\\n\\nWhen there are NO attachments, execute the caller's task query directly.\\n\\n## CRITICAL: PARAMETER NAMES\\n\\nThe Upload tool requires exact parameter names:\\n- Use \"folderPath\" — NOT \"transcriptsPath\", NOT \"folder\", NOT \"path\"\\n- Use \"fileName\" — NOT \"name\", NOT \"filename\"\\n- Use \"fileContent\" — NOT \"content\", NOT \"data\"\\n\\nIf you pass wrong parameter names the upload WILL fail. Check the error message — if it says \"folderPath is required\", you passed the wrong name.\\n\\n## GUIDELINES\\n- Always report the webUrl of successfully uploaded files.\\n- On errors, include the operation that failed and the exact error message.\\n- Do not invent SharePoint URLs or Drive item IDs.\\n- When creating presale records, use the Title field as the presale identifier."
         }
       },
       "id": "6c40e53a-c5f1-4389-9851-bc25b6a71e3d",
@@ -148,7 +148,63 @@
     },
     {
       "parameters": {
-        "jsCode": "const agentOutput = ($input.first().json.output || '').trim();\n\nconst opPatterns = [\n  { type: 'upload',   re: /upload|creat|wrote|saved|added/i },\n  { type: 'download', re: /download|retriev|read|fetch/i },\n];\nlet operation = 'unknown';\nfor (const p of opPatterns) {\n  if (p.re.test(agentOutput)) { operation = p.type; break; }\n}\n\nconst webUrlMatch = agentOutput.match(/https?:\\/\\/[^\\s\"'<>]*sharepoint[^\\s\"'<>]*/i);\nconst webUrl = webUrlMatch ? webUrlMatch[0].replace(/[.,;)]+$/, '') : null;\n\n// Only throw if the agent explicitly reports a tool-level failure \u2014 not for general error words in its own reasoning\nconst isToolError = /Upload failed|Download failed|error:\\s+(siteUrl|folderPath|fileName|fileContent|401|403|404|500)/i.test(agentOutput);\n\nif (isToolError) {\n  return [{\n    json: {\n      success: false,\n      operation,\n      webUrl,\n      error: agentOutput,\n      agentMessage: agentOutput,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    operation,\n    webUrl,\n    agentMessage: agentOutput,\n  }\n}];"
+        "description": "Create, update, or read Presales list items in SharePoint. Use this to persist presale opportunity data.\n\nParameters:\n- operation (REQUIRED): one of 'create', 'update', 'get'\n- itemId (REQUIRED for update/get): the SharePoint list item ID (integer) to update or retrieve\n- fields (REQUIRED for create/update): JSON object of field name-value pairs.\n\nValid fields:\n- Title (string): presale name/ID, e.g. \"[PR-2026-001] CRM implementation for Client X\"\n- Client (string): one of 'Client A', 'Client B', 'Other'\n- Status (string): one of 'Draft', 'In Progress', 'Submitted', 'Won', 'Lost', 'Paused'\n- PresaleArchitect (string): user email or UPN\n- Budget (number): estimated budget amount\n- Deadline (string): ISO date, e.g. '2026-06-30'\n- Description (string): scope description\n- TechStack (array of strings): e.g. [\"Power Platform\", \"Azure\"] — valid: Power Platform, Azure, .NET, JavaScript / TypeScript, Python, Java, DevOps / CI/CD, AI / ML, Other\n- ProposalLink (object): {\"Url\": \"https://...\", \"Description\": \"Proposal\"}",
+        "workflowId": {
+          "__rl": true,
+          "value": "FKjWXW8Wrz3biD5p",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "operation": "={{ $fromAI('operation', 'Operation to perform: create, update, or get', 'string') }}",
+            "itemId": "={{ $fromAI('itemId', 'Item ID (required for update/get)', 'string') }}",
+            "fields": "={{ $fromAI('fields', 'Field name-value pairs as a JSON object for create/update only. For get operation, DO NOT pass this parameter at all — leave it absent.', 'json') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "operation",
+              "displayName": "operation",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "itemId",
+              "displayName": "itemId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fields",
+              "displayName": "fields",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "json",
+              "canBeUsedToMatch": false
+            }
+          ]
+        }
+      },
+      "id": "f6a7b8c9-d0e1-4234-9f01-345678901236",
+      "name": "Presales List",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = ($input.first().json.output || '').trim();\n\nconst opPatterns = [\n  { type: 'upload',   re: /upload|creat|wrote|saved|added/i },\n  { type: 'download', re: /download|retriev|read|fetch/i },\n  { type: 'list',     re: /presales list|list operation|create.*presale|update.*presale|log.*opportunit|persist.*presale|saved.*presale|item[Ii][Dd]|found.*presale|retriev.*all|get all presale|top.*presale|all presale/i },\n];\nlet operation = 'unknown';\nfor (const p of opPatterns) {\n  if (p.re.test(agentOutput)) { operation = p.type; break; }\n}\n\nconst webUrlMatch = agentOutput.match(/https?:\\/\\/[^\\s\"'<>]*sharepoint[^\\s\"'<>]*/i);\nconst webUrl = webUrlMatch ? webUrlMatch[0].replace(/[.,;)]+$/, '') : null;\n\nconst itemIdMatch = agentOutput.match(/item[Ii][Dd][:\\s]+(\\d+)/);\nconst itemId = itemIdMatch ? itemIdMatch[1] : null;\n\n// Only throw if the agent explicitly reports a tool-level failure — not for general error words in its own reasoning\nconst isToolError = /Upload failed|Download failed|List operation failed|error:\\s+(siteUrl|folderPath|fileName|fileContent|operation|fields|itemId|401|403|404|500)/i.test(agentOutput);\n\nif (isToolError) {\n  return [{\n    json: {\n      success: false,\n      operation,\n      webUrl,\n      itemId,\n      error: agentOutput,\n      agentMessage: agentOutput,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    operation,\n    webUrl,\n    itemId,\n    agentMessage: agentOutput,\n  }\n}];"
       },
       "id": "b2c3d4e5-f6a7-4890-bcde-f01234567890",
       "name": "Format Response",
@@ -158,6 +214,124 @@
         848,
         304
       ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retrieve all Presales list items from SharePoint via Microsoft Graph API. Returns up to 50 items with all fields (Title, Client, Status, Budget, Deadline, TechStack, etc.). No input parameters needed.",
+        "method": "GET",
+        "url": "={{ \"https://graph.microsoft.com/v1.0/sites/t8lxc.sharepoint.com:/sites/PresaleAgentBot:/lists/Presales/items?$expand=fields&$top=50\" }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api"
+      },
+      "id": "81c2d3e4-f5a6-47b8-9c0d-1e2f3a4b5c6d",
+      "name": "Get All Presales",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1376,
+        1100
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "id": "hYtwF50yLhOfSXDi",
+          "name": "Microsoft Graph API - t8lxc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Create a new item in the Presales SharePoint list. Provide fields as a JSON object with presale data.",
+        "method": "POST",
+        "url": "={{ \"https://graph.microsoft.com/v1.0/sites/t8lxc.sharepoint.com:/sites/PresaleAgentBot:/lists/Presales/items\" }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({fields: $fromAI('fields', 'Field name-value pairs as a JSON object. Valid: Title (string), Client (Client A/Client B/Other), Status (Draft/In Progress/Submitted/Won/Lost/Paused), PresaleArchitect (email), Budget (number), Deadline (ISO date e.g. 2026-06-30), Description (string), TechStack (string array), ProposalLink ({Url, Description})', 'json')}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "c3d4e5f6-a7b8-4901-cdef-012345678902",
+      "name": "Add Presale to List",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        1100
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "id": "hYtwF50yLhOfSXDi",
+          "name": "Microsoft Graph API - t8lxc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Update an existing item in the Presales SharePoint list by item ID. Provide itemId (integer) and fields as a JSON object with the values to update.",
+        "method": "PATCH",
+        "url": "={{ \"https://graph.microsoft.com/v1.0/sites/t8lxc.sharepoint.com:/sites/PresaleAgentBot:/lists/Presales/items/\" + $fromAI('itemId', 'The integer SharePoint list item ID to update', 'number') + \"/fields\" }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($fromAI('fields', 'Field name-value pairs to update as a JSON object. Valid: Title (string), Client (Client A/Client B/Other), Status (Draft/In Progress/Submitted/Won/Lost/Paused), PresaleArchitect (email), Budget (number), Deadline (ISO date e.g. 2026-06-30), Description (string), TechStack (string array), ProposalLink ({Url, Description})', 'json')) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "e5f6a7b8-c9d0-4123-ef01-234567890134",
+      "name": "Update Presale in List",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1888,
+        1100
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "id": "hYtwF50yLhOfSXDi",
+          "name": "Microsoft Graph API - t8lxc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retrieve all column definitions (fields schema) of the Presales SharePoint list. Returns field names, types, and settings. Use this to discover available fields before creating or updating items.",
+        "method": "GET",
+        "url": "={{ \"https://graph.microsoft.com/v1.0/sites/t8lxc.sharepoint.com:/sites/PresaleAgentBot:/lists/Presales/columns\" }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api"
+      },
+      "id": "f7a8b9c0-d1e2-4345-f012-345678901245",
+      "name": "Get Presales List Fields",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        2144,
+        1100
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "id": "hYtwF50yLhOfSXDi",
+          "name": "Microsoft Graph API - t8lxc"
+        }
+      }
     }
   ],
   "connections": {
@@ -205,12 +379,67 @@
         ]
       ]
     },
+    "Presales List": {
+      "ai_tool": [
+        [
+          {
+            "node": "SharePoint AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "SharePoint AI Agent": {
       "main": [
         [
           {
             "node": "Format Response",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Presales": {
+      "ai_tool": [
+        [
+          {
+            "node": "SharePoint AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Presale to List": {
+      "ai_tool": [
+        [
+          {
+            "node": "SharePoint AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Presale in List": {
+      "ai_tool": [
+        [
+          {
+            "node": "SharePoint AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Presales List Fields": {
+      "ai_tool": [
+        [
+          {
+            "node": "SharePoint AI Agent",
+            "type": "ai_tool",
             "index": 0
           }
         ]

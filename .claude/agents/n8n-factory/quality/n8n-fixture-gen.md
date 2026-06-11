@@ -143,10 +143,11 @@ Deep-subset matching is used by the test runner — extra fields in actual outpu
 
 ## Step 4 — Check for existing fixtures
 
-Before writing, check if fixture files already exist:
+Before writing, check if fixture files already exist by reading them:
 ```
-Grep({ pattern: ".", path: "orchestrator/n8n/fixtures/<slug>-trigger.json", output_mode: "count" })
+Read({ file_path: "orchestrator/n8n/fixtures/<slug>-trigger.json" })
 ```
+(If the file does not exist, Read will return an error — proceed to create it.)
 
 If they exist and are non-empty:
 - Read them and check if the schema still matches the current workflow

@@ -8,21 +8,27 @@
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
-      "position": [256, 304]
+      "position": [
+        256,
+        304
+      ]
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ ($json.conversationId ? 'conversationId=' + $json.conversationId + ', ' : '') + ($json.userName ? 'userName=' + $json.userName + ', ' : '') + ($json.aadObjectId ? 'aadObjectId=' + $json.aadObjectId + '\\n\\n' : '') + 'Task: ' + ($json.query || '(no query provided)') }}",
         "options": {
-          "systemMessage": "You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\n\nYou have the following tools available:\n\nUSER OPERATIONS:\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\n\nSITE OPERATIONS:\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\n\nGENERIC OPERATIONS:\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\n\nGuidelines:\n- Use the AAD object ID directly with Get User when available \u2014 it is the most reliable lookup key.\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\n- On errors, report the HTTP status code, Graph error code, and error message.\n\nRESPONSE FORMAT:\nAlways output a single raw JSON object \u2014 no markdown, no code fences, no prose outside the JSON.\n\nOn success:\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\n\nOn error (Graph API call or tool failure):\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}"
+          "systemMessage": "You are a Microsoft Graph API Agent. You query the Microsoft Graph API on behalf of the Presale Agent to retrieve organizational and user information from Azure Active Directory and SharePoint.\\n\\nYou have the following tools available:\\n\\nUSER OPERATIONS:\\n- Get User: Retrieve a user profile by AAD object ID or user principal name (UPN / email). Returns id, displayName, mail, jobTitle, department, officeLocation, mobilePhone, userPrincipalName.\\n- Get User Manager: Retrieve the direct manager of a user by their AAD object ID or UPN. Returns id, displayName, mail, jobTitle.\\n- Search Users: Find users matching an OData $filter (e.g. \"startswith(displayName,'John')\" or \"mail eq 'alice@contoso.com'\"). Returns up to the requested limit.\\n\\nSITE OPERATIONS:\\n- Get SharePoint Site: Retrieve SharePoint site metadata by site identifier (format: 'hostname:/sites/SiteName' or site GUID). Returns id, displayName, webUrl, description.\\n\\nGENERIC OPERATIONS:\\n- Generic Graph GET: Make any read-only GET request to the Microsoft Graph API. Provide the path without a leading slash, including version (e.g. 'v1.0/users/{id}/memberOf'). Use this for Graph API endpoints not covered by the other tools.\\n\\nGuidelines:\\n- Use the AAD object ID directly with Get User when available — it is the most reliable lookup key.\\n- For name-based lookups, use Search Users with startswith(displayName,...) filter.\\n- Always return relevant fields; do not dump the entire raw response unless explicitly requested.\\n- If no query is provided or the request is unclear, respond with a clear explanation of what input is required.\\n- On errors, report the HTTP status code, Graph error code, and error message.\\n\\nRESPONSE FORMAT:\\nAlways output a single raw JSON object — no markdown, no code fences, no prose outside the JSON.\\n\\nOn success:\\n{\"summary\":\"One sentence: what was retrieved and the key finding.\",\"data_type\":\"user_profile|user_manager|user_list|sharepoint_site|sharepoint_site_list|graph_generic\",\"payload\":{},\"extracted_facts\":[{\"fact_id\":\"f1\",\"category\":\"identity|org|location|contact|role|access\",\"content\":\"Plain-English fact.\"}],\"next_steps\":[\"Suggested follow-up action, or empty array if none.\"]}\\n\\nOn error (Graph API call or tool failure):\\n{\"summary\":\"One sentence describing what failed.\",\"data_type\":\"error\",\"payload\":null,\"extracted_facts\":[],\"next_steps\":[],\"error\":{\"code\":\"GRAPH_ERROR_CODE_OR_HTTP_STATUS\",\"message\":\"Human-readable error message.\"}}"
         }
       },
       "id": "b3c4d5e6-f7a8-4190-9c2d-3e4f5a6b7c8d",
       "name": "Graph API AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [512, 304],
+      "position": [
+        512,
+        304
+      ],
       "continueOnFail": true
     },
     {
@@ -33,7 +39,10 @@
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [752, 304]
+      "position": [
+        752,
+        304
+      ]
     },
     {
       "parameters": {
@@ -48,7 +57,10 @@
       "name": "Claude Haiku 4.5",
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
-      "position": [512, 496],
+      "position": [
+        512,
+        496
+      ],
       "credentials": {
         "anthropicApi": {
           "id": "tveGybvizLkoc6QO",
@@ -77,7 +89,10 @@
       "name": "Get User",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [96, 624],
+      "position": [
+        96,
+        624
+      ],
       "credentials": {
         "oAuth2Api": {
           "id": "hYtwF50yLhOfSXDi",
@@ -111,7 +126,10 @@
       "name": "Search Users",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [480, 624],
+      "position": [
+        480,
+        624
+      ],
       "credentials": {
         "oAuth2Api": {
           "id": "hYtwF50yLhOfSXDi",
@@ -140,7 +158,10 @@
       "name": "Get SharePoint Site",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [672, 624],
+      "position": [
+        672,
+        624
+      ],
       "credentials": {
         "oAuth2Api": {
           "id": "hYtwF50yLhOfSXDi",
@@ -169,7 +190,10 @@
       "name": "Generic Graph GET",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [864, 624],
+      "position": [
+        864,
+        624
+      ],
       "credentials": {
         "oAuth2Api": {
           "id": "hYtwF50yLhOfSXDi",
@@ -192,25 +216,81 @@
   },
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [[{"node": "Graph API AI Agent", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Graph API AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Graph API AI Agent": {
-      "main": [[{"node": "Format Response", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Claude Haiku 4.5": {
-      "ai_languageModel": [[{"node": "Graph API AI Agent", "type": "ai_languageModel", "index": 0}]]
+      "ai_languageModel": [
+        [
+          {
+            "node": "Graph API AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get User": {
-      "ai_tool": [[{"node": "Graph API AI Agent", "type": "ai_tool", "index": 0}]]
+      "ai_tool": [
+        [
+          {
+            "node": "Graph API AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Search Users": {
-      "ai_tool": [[{"node": "Graph API AI Agent", "type": "ai_tool", "index": 0}]]
+      "ai_tool": [
+        [
+          {
+            "node": "Graph API AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get SharePoint Site": {
-      "ai_tool": [[{"node": "Graph API AI Agent", "type": "ai_tool", "index": 0}]]
+      "ai_tool": [
+        [
+          {
+            "node": "Graph API AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Generic Graph GET": {
-      "ai_tool": [[{"node": "Graph API AI Agent", "type": "ai_tool", "index": 0}]]
+      "ai_tool": [
+        [
+          {
+            "node": "Graph API AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {

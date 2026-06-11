@@ -23,7 +23,7 @@ Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webho
                                      │                 │               │
                                      ▼                 ▼               │
                               SharePoint Online (Graph API)             │
-                              Lists: Conversations, Turns               │
+                              List: Presales                              │
                               Library: Transcripts                      │
 ```
 
@@ -35,7 +35,7 @@ Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webho
 | Graph API Agent | `graph-api-agent-workflow.json` | Haiku 4.5 | Microsoft Graph operations: user profile lookup, manager chain, organization data. |
 | SharePoint Upload File | `sharepoint-upload-file-workflow.json` | (Code node) | Low-level Graph API upload: resolves Drive ID, constructs upload session, handles base64 decode. Invoked as a tool workflow by SharePoint Agent. |
 
-> **Conversation state lives in SharePoint** (List `Conversations` + List `Turns` + Document Library `Transcripts`). Each turn reads/writes the lifecycle step (`new → intake → clarification → estimation → review → completed`) — no in-memory state. See [SharePoint State Store](#sharepoint-state-store).
+> **Presale data lives in SharePoint** (List `Presales` + Document Library `Transcripts`). Each presale record stores the intake details, status, budget, tech stack, and architect assignment. See [SharePoint State Store](#sharepoint-state-store).
 > Qdrant (vector search) is **planned but not yet implemented**.
 > Bot uses **fire-and-forget** pattern — sends payload to n8n, n8n calls back via `PROACTIVE_CALLBACK_URL`.
 > **Intent classification** is **context-aware** — Haiku 4.5 receives `currentStep` + last 2 turns and outputs one of `continue / status_query / closing / social_only / restart`. A cheap regex pre-filter short-circuits trivial pleasantries.
@@ -74,7 +74,7 @@ The system recognizes these patterns as review approval (→ transition to `comp
 
 | Artifact | File | Format | Stored in |
 |---|---|---|---|
-| Estimate Table | inline in chat reply | Markdown table (roles × rows, min/max pd + notes columns) | also persisted in `Turns.text` |
+| Estimate Table | inline in chat reply | Markdown table (roles × rows, min/max pd + notes columns) | also persisted in `Presales.Description` |
 | WBS | `wbs.md` | Markdown — hierarchical heading structure (## Phase → ### Deliverable → #### Task), each task with estimated hours | `Transcripts/<conversationId>/wbs.md` |
 | Estimates JSON | `estimates.json` | `{ conversationId, generatedAt, roles: [{ role, minPd, maxPd, notes }], totalMinPd, totalMaxPd, confidence }` | `Transcripts/<conversationId>/estimates.json` |
 
@@ -124,7 +124,9 @@ integrations/
 
 ## Rules
 
-- **Always use the n8n MCP tools** (`n8n_*`) for all n8n workflow management (create, update, activate, deploy, list). Never use the CLI (`npx n8nac`, `node deploy.js`) unless the MCP tool is unavailable.
+- **Always use `/deploy-n8n` for all n8n workflow deployments** — this is the canonical deploy tool. It handles prompt injection + n8n-cli update in the correct order. Never deploy a workflow by running `node scripts/inject-prompt.js` or `n8n-cli workflow update` manually in isolation. The command is defined in `.claude/commands/deploy-n8n.md`.
+- **`n8n-cli` is the primary deployment tool** — use it for all workflow create/update/activate operations. MCP tools (`n8n_*`) are secondary and used only for inspection (list, read) or when n8n-cli is unavailable.
+- **Prompt injection required before every deploy** — AI agent workflows have system prompts stored as `.md` files in `orchestrator/n8n/prompts/`. The `/deploy-n8n` command handles this automatically. See `.claude/rules/n8n.md` for full details.
 
 ## Key Commands
 
@@ -138,6 +140,9 @@ cd microsoft-teams-bot && npm run start:dev
 # Or start individually:
 cd microsoft-teams-bot && npm run bot      # nodemon watch mode
 cd microsoft-teams-bot && npm run tunnel   # devtunnel host tidy-river-mfkpvdl.euw
+
+# Inject prompts (required before deploying AI agent workflows):
+cd orchestrator/n8n && node scripts/inject-prompt.js inject
 
 # Deploy/update n8n workflow via MCP (preferred) — or n8nac as fallback:
 npx n8nac push orchestrator/n8n/workflows/presale-agent-workflow.json --env Dev
@@ -213,8 +218,7 @@ AZURE_GRAPH_TENANT_ID=0d9ed809-b1ed-46bd-b3e3-5ccb093ae299
 
 # SharePoint identifiers (resolve via Graph after creating the site — see sharepoint-setup.md)
 SHAREPOINT_SITE_URL=<value>
-SHAREPOINT_CONVERSATIONS_LIST_ID=<value>
-SHAREPOINT_TURNS_LIST_ID=<value>
+SHAREPOINT_PRESALES_LIST_ID=<value>
 SHAREPOINT_DRIVE_ID=<value>
 ```
 
@@ -293,33 +297,19 @@ n8n processes asynchronously, then POSTs to `callbackUrl` with `{ conversationId
 **Site:** `Presale Agent Bot` at `https://<tenant>.sharepoint.com/sites/PresaleAgentBot`  
 **Setup guide:** `orchestrator/n8n/sharepoint-setup.md`
 
-### List `Conversations` (one item per conversationId)
+### List `Presales` (one item per presale opportunity)
 
 | Column | Type | Purpose |
 |---|---|---|
-| `conversationId` | Single line, indexed | Logical key |
-| `userId`, `userName`, `channelId` | Single line | Identity |
-| `currentStep` | Choice: `new` / `intake` / `clarification` / `estimation` / `review` / `completed` | Lifecycle position |
-| `status` | Choice: `Active` / `Archived` | Soft delete |
-| `createdAt`, `modifiedAt` | DateTime | Audit |
-| `clarificationTurns` | Number | Counter for `≥5` forced-advance rule |
-| `summary` | Multi-line text | LLM-maintained one-paragraph summary |
-| `wbsArtifactRef` | Hyperlink | Link to `wbs.md` in Transcripts |
-| `lastTurnNo` | Number | Monotonic counter for turn ordering |
-
-### List `Turns` (one item per message)
-
-| Column | Type | Purpose |
-|---|---|---|
-| `conversationId` | Single line, indexed | FK |
-| `turnNo` | Number, indexed | Monotonic per conversation |
-| `role` | Choice: `user` / `assistant` | |
-| `step` | Choice (same enum) | Step at time of turn |
-| `intent` | Single line | Classifier output (user turns only) |
-| `text` | Multi-line text | Message body (≤63K chars) |
-| `ts` | DateTime | |
-| `overflowRef` | Hyperlink | Points to `transcript-overflow-<n>.md` in Transcripts when text >63K |
-| `attachmentsJson` | Multi-line text | `[{name, contentType, sizeBytes}]` |
+| `Title` | Single line of text | Presale ID / name (e.g. `[PR-2026-001] CRM implementation for Client X`) |
+| `Client` | Choice | Client name |
+| `Status` | Choice | `Draft` / `In Progress` / `Submitted` / `Won` / `Lost` / `Paused` |
+| `PresaleArchitect` | Person or Group | Assigned architect / lead |
+| `Budget` | Currency | Estimated budget (USD/EUR/PLN) |
+| `Deadline` | Date and Time | Proposal submission due date |
+| `Description` | Multiple lines of text | Scope description and business context |
+| `TechStack` | MultiChoice | Technology stack (Power Platform, Azure, .NET, JS/TS, Python, Java, DevOps, AI/ML, Other) |
+| `ProposalLink` | Hyperlink | Link to the final proposal document |
 
 ### Document Library `Transcripts`
 
@@ -352,8 +342,7 @@ Teams → Apps → Manage your apps → Upload a custom app → select the zip.
 ## Architecture Decisions
 
 - **SharePoint over n8n Window Buffer for memory** — restart-safe persistence, auditable in SP UI, no per-topic isolation. Trade-off: ~100–300 ms Graph latency per turn.
-- **Turns as a List instead of `messages.jsonl` in Library** — no GET-then-PUT race on appends, queryable/filterable in SP UI, structured per-turn metadata. Trade-off: SP multi-line text columns cap at ~63K chars per row — handled via `overflowRef` to a fallback file in the Library.
-- **Explicit state machine (`new → intake → clarification → estimation → review → completed`) over LLM-driven routing** — deterministic for PoC, easy to audit, fewer LLM calls per turn. Intent classifier (Haiku 4.5) serves as a hint; routing rules in `Resolve Routing Step` make the final decision.
+- **Presales List instead of Conversations + Turns** — consolidated single-record schema with all intake fields, status workflow, estimated budget, tech stack, and architect assignment. Each presale is one row — no join needed.
 - **Greeting WF reachable only at `new`/`completed`** — social pleasantries mid-conversation route to the active step's WF (e.g., clarification), preventing accidental state resets.
 
 ## Tech Stack
@@ -364,7 +353,7 @@ Teams → Apps → Manage your apps → Upload a custom app → select the zip.
 | Orchestrator | n8n (Docker) + n8nac (workflow as code) |
 | Intent Classifier | Claude Haiku 4.5 (context-aware: currentStep + last 2 turns, 16 tokens max) |
 | LLM (presale/clarification/status) | Claude Sonnet 4.6 (Anthropic, via n8n LangChain AI Agent) |
-| Conversation State | SharePoint Online via Microsoft Graph (Lists `Conversations` + `Turns`, Library `Transcripts`) |
+| Conversation State | SharePoint Online via Microsoft Graph (List `Presales`, Library `Transcripts`) |
 | State Persistence | Per-turn writes — no in-memory state; restart-safe |
 | Vector DB | Qdrant — **deferred** (needs Docker/virtualization) |
 | Tunnel (dev) | devtunnel (Microsoft) |

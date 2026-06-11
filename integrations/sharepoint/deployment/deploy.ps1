@@ -119,8 +119,7 @@ if (-not $IdsOnly) {
 Write-Step "Resolving SharePoint IDs"
 
 $graphSiteId = (Invoke-PnPGraphMethod -Url "sites/t8lxc.sharepoint.com:/sites/PresaleAgentBot" -Method Get).id
-$convList    = Get-PnPList -Identity "Conversations"
-$turnsList   = Get-PnPList -Identity "Turns"
+$presalesList = Get-PnPList -Identity "Presales"
 $drives      = (Invoke-PnPGraphMethod -Url "sites/$graphSiteId/drives" -Method Get).value
 $driveId     = ($drives | Where-Object { $_.name -eq "Transcripts" }).id
 
@@ -129,8 +128,7 @@ Write-Host ("═" * 58) -ForegroundColor Green
 Write-Host "  Add to orchestrator/n8n/.env:" -ForegroundColor Green
 Write-Host ("═" * 58) -ForegroundColor Green
 Write-Host "SHAREPOINT_SITE_ID=$graphSiteId"
-Write-Host "SHAREPOINT_CONVERSATIONS_LIST_ID=$($convList.Id)"
-Write-Host "SHAREPOINT_TURNS_LIST_ID=$($turnsList.Id)"
+Write-Host "SHAREPOINT_PRESALES_LIST_ID=$($presalesList.Id)"
 Write-Host "SHAREPOINT_DRIVE_ID=$driveId"
 Write-Host ("═" * 58) -ForegroundColor Green
 

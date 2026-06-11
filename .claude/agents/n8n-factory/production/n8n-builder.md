@@ -61,9 +61,18 @@ mcp__n8n-mcp__search_templates({ query: "<topic>" })     // find reusable patter
 
 Reuse proven patterns. If a similar workflow exists, extend it rather than duplicate.
 
----
+## Additional rules
 
-## Pattern library
+Read `.claude/rules/n8n.md` before starting:
+- `$env` replaces `$vars` (Community Edition restriction)
+- Credential ID `tveGybvizLkoc6QO` for Anthropic
+- UUIDv4 generation for all node IDs and workflow IDs
+- Only include fields allowed on write (omit `active`, `versionId`, `meta`, `tags`, `settings.binaryMode`)
+- Node naming conventions from CLAUDE.md
+
+These override any generic best practices.
+
+---
 
 Read `.claude/skills/n8n-workflow-patterns/SKILL.md` for ready-made patterns:
 routing, pagination, error handling, webhook modes, sub-workflow calls, expression syntax.
