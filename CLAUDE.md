@@ -91,7 +91,7 @@ microsoft-teams-bot/          # Node.js Teams bot (relay only)
   Dockerfile                  # node:20-slim, EXPOSE 3978
   .env.example
   .claude/commands/
-    deploy-n8n.md             # /deploy-n8n scoped to bot subdir
+    n8n-deploy-flow.md        # /n8n-deploy-flow
   teams-app/
     manifest.json             # Teams manifest v1.16, supportsFiles: true
     color.png / outline.png   # 192×192 and 32×32 icons
@@ -118,15 +118,17 @@ integrations/
 
 .claude/
   commands/
-    deploy-n8n.md             # /deploy-n8n slash command
-    start-dev.md              # /start-dev slash command
+    n8n-deploy-flow.md        # /n8n-deploy-flow
+    n8n-inspect-flow.md       # /n8n-inspect-flow
+    git-sync.md               # /git-sync
+    bot-dev-start.md          # /bot-dev-start
 ```
 
 ## Rules
 
-- **Always use `/deploy-n8n` for all n8n workflow deployments** — this is the canonical deploy tool. It handles prompt injection + n8n-cli update in the correct order. Never deploy a workflow by running `node scripts/inject-prompt.js` or `n8n-cli workflow update` manually in isolation. The command is defined in `.claude/commands/deploy-n8n.md`.
+- **Always use `/n8n-deploy-flow` for all n8n workflow deployments** — this is the canonical deploy tool. It handles prompt injection + n8n-cli update in the correct order. Never deploy a workflow by running `node scripts/inject-prompt.js` or `n8n-cli workflow update` manually in isolation. The command is defined in `.claude/commands/n8n-deploy-flow.md`.
 - **`n8n-cli` is the primary deployment tool** — use it for all workflow create/update/activate operations. MCP tools (`n8n_*`) are secondary and used only for inspection (list, read) or when n8n-cli is unavailable.
-- **Prompt injection required before every deploy** — AI agent workflows have system prompts stored as `.md` files in `orchestrator/n8n/prompts/`. The `/deploy-n8n` command handles this automatically. See `.claude/rules/n8n.md` for full details.
+- **Prompt injection required before every deploy** — AI agent workflows have system prompts stored as `.md` files in `orchestrator/n8n/prompts/`. The `/n8n-deploy-flow` command handles this automatically. See `.claude/rules/n8n.md` for full details.
 
 ## Key Commands
 
@@ -159,10 +161,10 @@ npx n8nac pull <workflowId>              # download a workflow from n8n
 ### Claude Slash Commands
 
 ```
-/start-dev          # runs: cd microsoft-teams-bot && npm run start:dev
-/deploy-n8n [args]  # runs: node orchestrator/n8n/deploy.js <args>
-                    #   requires --url <n8n-server-url>
-                    #   optional --key <api-key>, --file <path>, --name <workflow-name>
+/git-sync                # Stage, commit, sync with remote, push
+/n8n-deploy-flow [args]  # Deploy n8n workflows from local JSON files
+/n8n-inspect-flow [args] # Inspect last failed n8n execution
+/bot-dev-start           # Start bot dev environment (bot + tunnel)
 ```
 
 ### n8nac One-time Setup
