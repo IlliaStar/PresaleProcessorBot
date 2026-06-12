@@ -1,0 +1,1 @@
+- [Adaptive Card "New vs Continue"](adaptive-card-new-vs-continue.md) — выбор нового или существующего пресейла через Adaptive Cards + улучшенный prompt

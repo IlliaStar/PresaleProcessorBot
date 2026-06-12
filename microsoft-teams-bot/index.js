@@ -28,9 +28,9 @@ server.post('/api/messages', async (req, res) => {
 });
 
 server.post('/proactive', async (req, res) => {
-  const { conversationId, reply } = req.body || {};
-  if (!conversationId || !reply) {
-    res.json(400, { error: 'conversationId and reply are required' });
+  const { conversationId, reply, attachments } = req.body || {};
+  if (!conversationId || (!reply && !attachments)) {
+    res.json(400, { error: 'conversationId and reply (or attachments) are required' });
     return;
   }
   const stored = conversationStore.get(conversationId);
@@ -43,7 +43,17 @@ server.post('/proactive', async (req, res) => {
   if (responseDeadline) { clearTimeout(responseDeadline); stored.responseDeadline = null; }
   try {
     await adapter.continueConversation(ref, async (turnContext) => {
-      await turnContext.sendActivity(MessageFactory.text(reply));
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        await turnContext.sendActivity({
+          type: ActivityTypes.Message,
+          attachments: attachments.map(a => ({
+            contentType: a.contentType || 'application/vnd.microsoft.card.adaptive',
+            content: a.content
+          }))
+        });
+      } else {
+        await turnContext.sendActivity(MessageFactory.text(reply));
+      }
     });
     res.json(200, { ok: true });
   } catch (err) {

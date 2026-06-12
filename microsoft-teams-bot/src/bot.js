@@ -61,8 +61,12 @@ class PresaleBot extends TeamsActivityHandler {
         })
     );
 
+    // Adaptive Card Action.Submit sends data in activity.value, not activity.text
+    const cardData = activity.value ? JSON.stringify(activity.value) : '';
+    const userMessage = stripHtml(activity.text || '') || cardData;
+
     const payload = {
-      message: stripHtml(activity.text || ''),
+      message: userMessage,
       conversationId,
       userId: activity.from.id,
       aadObjectId: activity.from.aadObjectId || '',

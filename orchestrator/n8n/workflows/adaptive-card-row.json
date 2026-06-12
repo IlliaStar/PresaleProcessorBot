@@ -1,0 +1,10 @@
+{
+  "parameters": {
+    "jsCode": "const input = $input.first().json;\nconst reply = (input.output || input.reply || '').trim();\n\nconst output = {\n  conversationId: input.conversationId,\n  reply: reply,\n  callbackUrl: input.callbackUrl\n};\n\n// Detect if the AI is asking the \"new vs continue\" question\nconst isSelectionQuestion = /\\b(новый пресейл|нового пресейла|существующий|continue existing|start a new|new presale|create a new|existing one|существующего)\\b/i.test(reply) &&\n  /\\b(выбрать|choose|хотите|want|would you|хотите|начать|start)\\b/i.test(reply);\n\nif (isSelectionQuestion) {\n  output.attachments = [{\n    contentType: \"application/vnd.microsoft.card.adaptive\",\n    content: {\n      type: \"AdaptiveCard\",\n      version: \"1.5\",\n      body: [\n        {\n          type: \"TextBlock\",\n          size: \"Medium\",\n          weight: \"Bolder\",\n          text: \"🤖 Presale Processing Agent\"\n        },\n        {\n          type: \"TextBlock\",\n          text: reply,\n          wrap: true\n        }\n      ],\n      actions: [\n        {\n          type: \"Action.Submit\",\n          title: \"🆕 Start a new presale\",\n          data: { intent: \"new_presale\" }\n        },\n        {\n          type: \"Action.Submit\",\n          title: \"📋 Continue an existing presale\",\n          data: { intent: \"continue_presale\" }\n        }\n      ]\n    }\n  }];\n}\n\nreturn [{ json: output }];"
+  },
+  "id": "a1b2c3d4-0008-4000-8000-100000000008",
+  "name": "Adaptive Card Builder",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "position": [1104, 304]
+}
