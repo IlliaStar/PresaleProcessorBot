@@ -1,5 +1,5 @@
 const restify = require('restify');
-const { BotFrameworkAdapter, MessageFactory } = require('botbuilder');
+const { BotFrameworkAdapter, MessageFactory, ActivityTypes } = require('botbuilder');
 const config = require('./src/config');
 const { PresaleBot } = require('./src/bot');
 const conversationStore = require('./src/conversationStore');

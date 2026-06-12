@@ -15,25 +15,23 @@ Teams → Azure Bot Service (F0) → microsoft-teams-bot (Node.js) → n8n webho
                                                               (Claude Sonnet 4.6)
                                                               + Window Buffer Memory
                                                                        ↓
-                                     ┌─────────────────┬───────────────┬─────────────────┐
-                                     ▼                 ▼               ▼                 ▼
-                              SharePoint Agent   Graph API Agent  Format Reply   Proactive Callback
-                              (Haiku 4.5,        (Haiku 4.5,           │            → Teams
-                               file ops)          user/org lookup)      │
-                                     │                 │               │
-                                     ▼                 ▼               │
-                              SharePoint Online (Graph API)             │
-                              List: Presales                              │
-                              Library: Transcripts                      │
+                                     ┌───────────────────────────────────┐
+                                     ▼                                   ▼
+                              SharePoint Agent                    Format Reply
+                              (Haiku 4.5,                         → Teams
+                               SharePoint CRUD)                   Proactive Callback
+                                     │
+                                     ▼
+                              SharePoint Online (Graph API)
+                              List: Presales
+                              Library: Transcripts
 ```
 
 ### Sub-Workflows (invoked as tools by Presale AI Agent)
 
 | Workflow | File | AI Model | Purpose |
 |---|---|---|---|
-| SharePoint Agent | `sharepoint-agent-workflow.json` | Haiku 4.5 | File upload/download via Graph API. Uses `Upload File via Graph API` tool (delegates to sharepoint-upload-file WF) and `Download File` tool (SharePoint native). |
-| Graph API Agent | `graph-api-agent-workflow.json` | Haiku 4.5 | Microsoft Graph operations: user profile lookup, manager chain, organization data. |
-| SharePoint Upload File | `sharepoint-upload-file-workflow.json` | (Code node) | Low-level Graph API upload: resolves Drive ID, constructs upload session, handles base64 decode. Invoked as a tool workflow by SharePoint Agent. |
+| SharePoint Agent | `sharepoint-agent-workflow.json` | Haiku 4.5 | File download via SharePoint connector + Presales list CRUD via direct HTTP tools. |
 
 > **Presale data lives in SharePoint** (List `Presales` + Document Library `Transcripts`). Each presale record stores the intake details, status, budget, tech stack, and architect assignment. See [SharePoint State Store](#sharepoint-state-store).
 > Qdrant (vector search) is **planned but not yet implemented**.
@@ -104,7 +102,6 @@ orchestrator/
     .env.example                     # ANTHROPIC_API_KEY, AZURE_GRAPH_*, SHAREPOINT_*
     workflows/
       presale-agent-workflow.json    # Main workflow: Webhook → AI Agent (Claude Sonnet 4.6 + Memory) → Callback
-      graph-api-agent-workflow.json  # Graph API agent sub-workflow
       sharepoint-agent-workflow.json # SharePoint agent sub-workflow
     fixtures/                        # Pinned data fixtures for TDD testing
     _backup/
@@ -231,25 +228,22 @@ SHAREPOINT_DRIVE_ID=<value>
 **Workflow ID:** `unPvfldAhlEkBcqi`  
 **File:** `orchestrator/n8n/workflows/presale-agent-workflow.json`
 
-Pipeline (9 nodes):
+Pipeline (8 nodes):
 
 1. **Teams Bot Webhook** — POST `/webhook/presale-agent`, `webhookId: presale-agent`, `responseMode: onReceived`
 2. **Prepare Input** — normalizes body → `{ userMessage, rawMessage, conversationId, callbackUrl, userName, userId, aadObjectId, attachments }`; inlines attachment metadata into `userMessage`
-3. **Presale Agent** (`@n8n/n8n-nodes-langchain.agent`) — Claude Sonnet 4.6, system prompt with intake/clarification/estimation/WBS/closing lifecycle. Connected to 2 AI tools (Graph API Agent, SharePoint Agent).
+3. **Presale Agent** (`@n8n/n8n-nodes-langchain.agent`) — Claude Sonnet 4.6, system prompt with intake/clarification/estimation/WBS/closing lifecycle. Connected to 1 AI tool (SharePoint Agent).
 4. **Claude Sonnet 4.6** (`lmChatAnthropic`) — connected via `ai_languageModel`; maxTokens 4096, timeout 120 s; credential `tveGybvizLkoc6QO`
 5. **Window Buffer Memory** (`memoryBufferWindow`) — connected via `ai_memory`; `sessionKey = conversationId`; `contextWindowLength = 20`
-6. **Graph API Agent Tool** (`@n8n/n8n-nodes-langchain.toolWorkflow`) — invokes sub-workflow `P8NecHn00l4qArkW`; passes `query` (via `$fromAI`) + `conversationId`, `userName`, `aadObjectId`
-7. **SharePoint Agent Tool** (`@n8n/n8n-nodes-langchain.toolWorkflow`) — invokes sub-workflow `rDK4JWk961DRUUuP`; passes `query` (via `$fromAI`) + `conversationId`, `userName`, `attachmentsJson`
-8. **Format Reply** — extracts `$json.output` → `{ conversationId, reply, callbackUrl }`
-9. **Teams Callback** — POST `callbackUrl` with `{ conversationId, reply }`; `continueOnFail: true`
+6. **SharePoint Agent Tool** (`@n8n/n8n-nodes-langchain.toolWorkflow`) — invokes sub-workflow `rDK4JWk961DRUUuP`; passes `query` (via `$fromAI`) + `conversationId`, `userName`, `attachmentsJson`
+7. **Format Reply** — extracts `$json.output` → `{ conversationId, reply, callbackUrl }`
+8. **Teams Callback** — POST `callbackUrl` with `{ conversationId, reply }`; `continueOnFail: true`
 
 ### Tool Sub-Workflows
 
 | Workflow | ID | File | AI Model | Purpose |
 |---|---|---|---|---|
-| Graph API Agent | `P8NecHn00l4qArkW` | `graph-api-agent-workflow.json` | Haiku 4.5 | Microsoft Graph operations: user profile lookup, manager chain, org data |
-| SharePoint Agent | `rDK4JWk961DRUUuP` | `sharepoint-agent-workflow.json` | Haiku 4.5 | File upload/download in Transcripts library. Uses `Upload File via Graph API` (`@n8n/n8n-nodes-langchain.toolWorkflow` → WF `NbSxfbw80T5P6Ewh`) and native `Download File` tool (SharePoint connector) |
-| SharePoint Upload File | `NbSxfbw80T5P6Ewh` | `sharepoint-upload-file-workflow.json` | Code node only | Low-level Graph API upload: resolves Drive ID, constructs upload session, handles base64 decode |
+| SharePoint Agent | `rDK4JWk961DRUUuP` | `sharepoint-agent-workflow.json` | Haiku 4.5 | File download via SharePoint connector + Presales list CRUD via direct HTTP tools (Get All Presales, Add/Update Presale in List, Get Presales List Fields) |
 
 > **After n8n container recreation:** credential IDs reset. Recreate "Anthropic account" (anthropicApi) and "Microsoft SharePoint - t8lxc" credentials, then update the credential ID in all affected nodes.
 > **Archived dispatcher workflow** (SharePoint state machine, 22 nodes) is preserved in `orchestrator/n8n/_backup/presale-agent-workflow.json`.

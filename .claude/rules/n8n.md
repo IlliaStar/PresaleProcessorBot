@@ -36,10 +36,9 @@ Manages the n8n workflow files that power the Presale Agent pipeline.
   - **Before ANY deploy**, always run `node scripts/inject-prompt.js inject` from `orchestrator/n8n/` to bake the latest prompt text into the workflow JSON files. This is a required step — if you skip it, the deployed workflow will have stale prompt text.
   - **Extract** from JSON back to `.md` (e.g. after editing in n8n UI): `node scripts/inject-prompt.js extract`.
   - **Deploy sequence** for workflows with AI agent nodes: `inject` → `update` (via `n8n-cli` or MCP).
-  - Only workflows with `@n8n/n8n-nodes-langchain.agent` nodes are affected. Trigger-only workflows (e.g. upload-file, list-operations) skip automatically.
+  - Only workflows with `@n8n/n8n-nodes-langchain.agent` nodes are affected. Trigger-only workflows skip automatically.
   - Current prompt mapping:
     - `presale-agent-workflow-Presale Agent.md` → `presale-agent-workflow.json` / "Presale Agent" node
-    - `graph-api-agent-workflow-Graph API AI Agent.md` → `graph-api-agent-workflow.json` / "Graph API AI Agent" node
     - `sharepoint-agent-workflow-SharePoint AI Agent.md` → `sharepoint-agent-workflow.json` / "SharePoint AI Agent" node
 - **Workflow IDs & Version Control**:
   - **Stable IDs**: The `id` field in workflow JSONs must remain unchanged to prevent creating duplicates upon re-import.

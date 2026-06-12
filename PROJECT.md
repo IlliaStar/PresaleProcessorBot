@@ -165,11 +165,7 @@ One folder per `conversationId`, containing:
 
 ### Sub-Workflows
 
-1. **SharePoint Agent** (`sharepoint-agent-workflow.json`) — AI agent with tools for file upload (via Graph API) and download. Handles attachment ingestion and artifact storage.
-
-2. **Graph API Agent** (`graph-api-agent-workflow.json`) — AI agent for Microsoft Graph operations (user lookup, organization data).
-
-3. **SharePoint Upload File** (`sharepoint-upload-file-workflow.json`) — Dedicated Graph API upload sub-workflow invoked as a tool by the SharePoint Agent.
+1. **SharePoint Agent** (`sharepoint-agent-workflow.json`) — AI agent with tools for file download and Presales list CRUD. Handles attachment ingestion and artifact storage.
 
 ### Key Design Decisions
 

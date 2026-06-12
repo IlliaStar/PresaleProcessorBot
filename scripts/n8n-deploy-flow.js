@@ -100,6 +100,42 @@ for (const wfFile of targetFiles) {
         maxBuffer: 10 * 1024 * 1024,
       });
       status = child.status === 0 ? 'updated' : 'update-failed';
+      if (status === 'update-failed') {
+        try {
+          const createJson = { ...wfJson };
+          delete createJson.id;
+          const listResult = execSilent('n8n-cli workflow list --json');
+          const existing = listResult ? JSON.parse(listResult).find(w =>
+            w.name === createJson.name
+          ) : null;
+          if (existing) {
+            // Name collision — update by actual ID
+            const child2 = spawnSync('n8n-cli', ['workflow', 'update', existing.id, '--stdin'], {
+              cwd: N8N_DIR,
+              input: JSON.stringify(createJson),
+              encoding: 'utf8',
+              shell: true,
+              maxBuffer: 10 * 1024 * 1024,
+            });
+            status = child2.status === 0 ? 'updated' : 'update-failed';
+            if (status === 'updated') wfId = existing.id;
+          } else {
+            // New workflow — create via stdin to avoid Windows path issues
+            const createChild = spawnSync('n8n-cli', ['workflow', 'create', '--stdin'], {
+              cwd: N8N_DIR,
+              input: JSON.stringify(createJson),
+              encoding: 'utf8',
+              shell: true,
+              maxBuffer: 10 * 1024 * 1024,
+            });
+            if (createChild.status === 0) {
+              const parsed = JSON.parse(createChild.stdout);
+              wfId = parsed.id || wfId;
+              status = 'imported';
+            }
+          }
+        } catch { /* keep update-failed */ }
+      }
     } else {
       exec(`cd "${N8N_DIR}" && n8n-cli workflow import "${wfFile}"`);
       status = 'imported';
