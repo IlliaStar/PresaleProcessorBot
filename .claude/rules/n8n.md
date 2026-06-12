@@ -1,5 +1,5 @@
 ---
-description: Rules for the n8n orchestrator — workflow JSON files, node conventions, and deployment.
+description: Rules for the n8n orchestrator — workflow JSON files, node conventions, deployment, Docker management, and known issues.
 paths: 
   - orchestrator/n8n/**
 ---
@@ -8,8 +8,53 @@ paths:
 
 Manages the n8n workflow files that power the Presale Agent pipeline.
 
+## Directory Structure
+
+```
+orchestrator/n8n/
+  docker-compose.yml               # n8n + Qdrant Docker stack
+  .env.example                     # ANTHROPIC_API_KEY, AZURE_GRAPH_*, SHAREPOINT_*
+  workflows/
+    presale-agent-workflow.json    # Main workflow: Webhook → AI Agent (Claude Sonnet 4.6 + Memory) → Callback
+    sharepoint-agent-workflow.json # SharePoint agent sub-workflow
+  prompts/                         # AI agent system prompts (injected before deploy)
+    presale-agent-workflow-Presale Agent.md
+    sharepoint-agent-workflow-SharePoint AI Agent.md
+  fixtures/                        # Pinned data fixtures for TDD testing
+  _backup/
+    presale-agent-workflow.json    # Archived dispatcher version (SharePoint state machine)
+```
+
+## Environment
+
+See [`orchestrator/n8n/.env`](../../orchestrator/n8n/.env) (template: [`orchestrator/n8n/.env.example`](../../orchestrator/n8n/.env.example)).
+
+## Docker Management
+
+```bash
+# Start n8n
+cd orchestrator/n8n && docker compose up -d n8n
+
+# Stop n8n
+cd orchestrator/n8n && docker compose down
+```
+
+## Sub-Workflows
+
+| Workflow | File | AI Model | Purpose |
+|---|---|---|---|
+| SharePoint Agent | `sharepoint-agent-workflow.json` | Haiku 4.5 | File download via SharePoint connector + Presales list CRUD via direct HTTP tools. |
+
+> Qdrant (vector search) is **planned but not yet implemented**.
+
+## Architecture Decisions
+
+- **Greeting handled outside the AI agent** — greetings are detected in the Prepare Input node and short-circuit to a static Adaptive Card, bypassing the AI agent entirely. This keeps the agent stateless for the happy path and prevents accidental state resets from mid-conversation pleasantries.
+
 ## Rules
 
+- **Always use `/n8n-deploy-flow` for all n8n workflow deployments** — this is the canonical deploy tool. It handles prompt injection + n8n-cli update in the correct order. Never deploy a workflow by running `node scripts/inject-prompt.js` or `n8n-cli workflow update` manually in isolation. The command is defined in `.claude/commands/n8n-deploy-flow.md`.
+- **`n8n-cli` is the primary deployment tool** — use it for all workflow create/update/activate operations. MCP tools (`n8n_*`) are secondary and used only for inspection (list, read) or when n8n-cli is unavailable.
 - **Variables ($vars vs $env)** — We use the Free/Community Edition of n8n, which does **NOT** support Instance Variables (`$vars`). Never use `$vars` in expressions. Instead, retrieve configuration from environment variables via `$env.VARIABLE_NAME`.
 - **Environment variables in UI (`N8N_ENV_VARS_UI_ALLOWED`)** — By default, `$env` variables are blocked from the UI and show as `undefined`. Always explicitly allow needed variables (e.g., `SHAREPOINT_SITE_URL`) by appending them to `N8N_ENV_VARS_UI_ALLOWED` in `docker-compose.yml`.
 - **Deploy command** — `n8n-cli workflows update <id> --file <path> --yes --skip-validation`. Use `--skip-validation` because n8n-cli does not know LangChain node types locally.
@@ -44,3 +89,9 @@ Manages the n8n workflow files that power the Presale Agent pipeline.
   - **Stable IDs**: The `id` field in workflow JSONs must remain unchanged to prevent creating duplicates upon re-import.
   - **Sub-workflow Dependencies**: Keep sub-workflow IDs strictly identical across environments to ensure "Execute Workflow" node linkages do not break.
   - **UUIDv4 Generation**: When creating new workflows, always generate a standard UUID v4 for the workflow `id`.
+
+## Known Issues
+
+- **Proactive callback unreachable from Docker** — n8n container cannot reach `localhost:3978`; use `PROACTIVE_CALLBACK_URL=http://host.docker.internal:3978/proactive`.
+- **Credential ID reset on container recreation** — fresh n8n DB assigns new credential IDs; must recreate "Anthropic account" + "Microsoft Graph - Presale Agent" credentials and update workflow node references.
+- **OAuth token exchange fails with ENETUNREACH (IPv6)** — Docker Desktop on Windows tries IPv6 for `login.microsoftonline.com` which is unreachable. Fix: add `extra_hosts` to `docker-compose.yml` with a known IPv4 of `login.microsoftonline.com` (e.g. `40.126.31.71`). `NODE_OPTIONS=--dns-result-order=ipv4first` and `sysctls` do NOT work on Docker Desktop/Windows.

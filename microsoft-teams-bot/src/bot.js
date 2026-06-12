@@ -30,40 +30,45 @@ class PresaleBot extends TeamsActivityHandler {
     this.onMembersAdded(async (context, next) => {
       for (const member of context.activity.membersAdded) {
         if (member.id !== context.activity.recipient.id) {
-          const firstName = member.name ? member.name.split(' ')[0] : 'there';
-          const card = CardFactory.adaptiveCard({
-            type: 'AdaptiveCard',
-            version: '1.5',
-            body: [
-              {
-                type: 'TextBlock',
-                size: 'Large',
-                weight: 'Bolder',
-                text: 'Presale Processing Agent',
-              },
-              {
-                type: 'TextBlock',
-                text: `Hello, **${firstName}**! I help analyze presale requests, estimate effort, and generate structured WBS documents.\n\nHow would you like to proceed?`,
-                wrap: true,
-              },
-            ],
-            actions: [
-              {
-                type: 'Action.Submit',
-                title: '🆕 Start a new presale',
-                data: { intent: 'new_presale' },
-              },
-              {
-                type: 'Action.Submit',
-                title: '📋 Continue an existing presale',
-                data: { intent: 'continue_presale' },
-              },
-            ],
-          });
-          await context.sendActivity(MessageFactory.attachment(card));
+          await context.sendActivity(MessageFactory.attachment(
+            this._greetingCard(member.name)
+          ));
         }
       }
       await next();
+    });
+  }
+
+  _greetingCard(name) {
+    const firstName = name ? name.split(' ')[0] : 'there';
+    return CardFactory.adaptiveCard({
+      type: 'AdaptiveCard',
+      version: '1.5',
+      body: [
+        {
+          type: 'TextBlock',
+          size: 'Large',
+          weight: 'Bolder',
+          text: 'Presale Processing Agent',
+        },
+        {
+          type: 'TextBlock',
+          text: `Hello, **${firstName}**! I help analyze presale requests, estimate effort, and generate structured WBS documents.\n\nHow would you like to proceed?`,
+          wrap: true,
+        },
+      ],
+      actions: [
+        {
+          type: 'Action.Submit',
+          title: '🆕 Start a new presale',
+          data: { intent: 'new_presale' },
+        },
+        {
+          type: 'Action.Submit',
+          title: '📋 Continue an existing presale',
+          data: { intent: 'continue_presale' },
+        },
+      ],
     });
   }
 

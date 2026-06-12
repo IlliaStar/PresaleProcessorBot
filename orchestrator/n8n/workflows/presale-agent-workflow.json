@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').trim();\nconst userName = body.userName || 'User';\nconst conversationId = body.conversationId || 'default';\nconst callbackUrl = body.callbackUrl || '';\nconst attachments = body.attachments || [];\n\nlet userMessage = null;\ntry {\n  const parsed = JSON.parse(message);\n  if (parsed.intent === 'new_presale') {\n    userMessage = 'I want to start a new presale.';\n  } else if (parsed.intent === 'continue_presale') {\n    userMessage = 'I want to continue working on an existing presale. Please show me the list.';\n  }\n} catch (_) {}\n\nif (!userMessage) {\n  const parts = [];\n  if (message) parts.push(message);\n  for (const att of attachments) {\n    if (att.name && att.content) {\n      parts.push(`\\n[Attached file: ${att.name}, ${Math.round((att.sizeBytes || 0) / 1024)} KB]`);\n    } else if (att.name) {\n      parts.push(`\\n[File attached (could not be downloaded): ${att.name}]`);\n    }\n  }\n  userMessage = parts.join('\\n') || `Hello from ${userName}`;\n}\n\nconst userId = body.userId || body.from?.id || '';\nconst aadObjectId = body.aadObjectId || body.from?.aadObjectId || '';\nreturn [{ json: { userMessage, rawMessage: message, conversationId, callbackUrl, userName, userId, aadObjectId, attachments } }];"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst message = (body.message || '').trim();\nconst userName = body.userName || 'User';\nconst conversationId = body.conversationId || 'default';\nconst callbackUrl = body.callbackUrl || '';\nconst attachments = body.attachments || [];\n\nconst GREETING_RE = /^(hi+|hey+|hello|howdy|start|begin|привет|здравствуй(те)?|добры[йе]\\s+(день|вечер|утро)|хай|хей|салют|начать|начало)[\\s!.,?]*$/i;\n\nlet userMessage = null;\nlet isGreeting = false;\n\ntry {\n  const parsed = JSON.parse(message);\n  if (parsed.intent === 'new_presale') {\n    userMessage = 'I want to start a new presale.';\n  } else if (parsed.intent === 'continue_presale') {\n    userMessage = 'I want to continue working on an existing presale. Please show me the list.';\n  }\n} catch (_) {}\n\nif (!userMessage && GREETING_RE.test(message)) {\n  isGreeting = true;\n  userMessage = message;\n}\n\nif (!userMessage) {\n  const parts = [];\n  if (message) parts.push(message);\n  for (const att of attachments) {\n    if (att.name && att.content) {\n      parts.push(`\\n[Attached file: ${att.name}, ${Math.round((att.sizeBytes || 0) / 1024)} KB]`);\n    } else if (att.name) {\n      parts.push(`\\n[File attached (could not be downloaded): ${att.name}]`);\n    }\n  }\n  userMessage = parts.join('\\n') || `Hello from ${userName}`;\n}\n\nconst userId = body.userId || body.from?.id || '';\nconst aadObjectId = body.aadObjectId || body.from?.aadObjectId || '';\nreturn [{ json: { userMessage, rawMessage: message, conversationId, callbackUrl, userName, userId, aadObjectId, attachments, isGreeting } }];"
       },
       "id": "a1b2c3d4-0002-4000-8000-100000000002",
       "name": "Prepare Input",
@@ -30,6 +30,84 @@
         432,
         304
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "a2b3c4d5-e6f7-4a89-b0c1-d2e3f4a5b6c7",
+              "leftValue": "={{ $json.isGreeting }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b3c4d5e6-f7a8-4b90-c1d2-e3f4a5b6c7d8",
+      "name": "Is Greeting?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        632,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $input.first().json;\nconst firstName = (prep.userName || 'there').split(' ')[0];\nreturn [{\n  json: {\n    conversationId: prep.conversationId,\n    callbackUrl: prep.callbackUrl,\n    reply: null,\n    attachments: [{\n      contentType: 'application/vnd.microsoft.card.adaptive',\n      content: {\n        type: 'AdaptiveCard',\n        version: '1.5',\n        body: [\n          { type: 'TextBlock', size: 'Large', weight: 'Bolder', text: 'Presale Processing Agent' },\n          { type: 'TextBlock', text: `Hello, **${firstName}**! I help analyze presale requests, estimate effort, and generate structured WBS documents.\\n\\nHow would you like to proceed?`, wrap: true }\n        ],\n        actions: [\n          { type: 'Action.Submit', title: '\\uD83C\\uDD95 Start a new presale', data: { intent: 'new_presale' } },\n          { type: 'Action.Submit', title: '\\uD83D\\uDCCB Continue an existing presale', data: { intent: 'continue_presale' } }\n        ]\n      }\n    }]\n  }\n}];"
+      },
+      "id": "c4d5e6f7-a8b9-4c01-d2e3-f4a5b6c7d8e9",
+      "name": "Greeting Card Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        856,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callbackUrl }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "conversationId",
+              "value": "={{ $json.conversationId }}"
+            },
+            {
+              "name": "reply",
+              "value": "={{ $json.reply }}"
+            },
+            {
+              "name": "attachments",
+              "value": "={{ $json.attachments }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d5e6f7a8-b9c0-4d12-e3f4-a5b6c7d8e9f0",
+      "name": "Teams Callback Greeting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        100
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -44,7 +122,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        656,
+        856,
         304
       ]
     },
@@ -62,7 +140,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
       "position": [
-        544,
+        744,
         528
       ],
       "credentials": {
@@ -83,7 +161,7 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        704,
+        904,
         624
       ]
     },
@@ -96,7 +174,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1104,
+        1080,
         304
       ]
     },
@@ -109,7 +187,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
+        1304,
         304
       ]
     },
@@ -141,7 +219,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1104,
+        1528,
         304
       ],
       "continueOnFail": true
@@ -209,7 +287,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1056,
+        1256,
         528
       ]
     }
@@ -230,7 +308,36 @@
       "main": [
         [
           {
+            "node": "Is Greeting?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Greeting?": {
+      "main": [
+        [
+          {
+            "node": "Greeting Card Builder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Presale Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Greeting Card Builder": {
+      "main": [
+        [
+          {
+            "node": "Teams Callback Greeting",
             "type": "main",
             "index": 0
           }
