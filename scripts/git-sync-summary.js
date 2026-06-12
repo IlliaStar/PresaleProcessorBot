@@ -31,6 +31,19 @@ function execSilent(cmd) {
   return exec(cmd, { silent: true });
 }
 
+const execLog = [];
+
+function execTracked(label, cmd, opts = {}) {
+  try {
+    const result = exec(cmd, opts);
+    execLog.push({ step: label, ok: true });
+    return result;
+  } catch (e) {
+    execLog.push({ step: label, ok: false, err: e.message?.split('\n')[0] });
+    throw e;
+  }
+}
+
 // ── 1. Status ─────────────────────────────────────────────────────────────
 const STATUS_SHORT = execSilent('git status --porcelain');
 if (!STATUS_SHORT) {
@@ -143,12 +156,13 @@ const branch = exec('git rev-parse --abbrev-ref HEAD');
 let behindRemote = '0';
 
 try {
-  exec(`git fetch --no-tags origin ${branch}`, { silent: true });
+  execTracked('git fetch', `git fetch --no-tags origin ${branch}`, { silent: true });
 } catch { exec('git fetch origin', { silent: true }); }
 
 try {
   exec(`git rev-parse --quiet --verify origin/${branch}`, { silent: true });
   behindRemote = exec(`git rev-list --count HEAD..origin/${branch}`, { silent: true }) || '0';
+  execLog.push({ step: 'remote check', ok: true, behind: parseInt(behindRemote, 10) });
 } catch { behindRemote = 'no-remote'; }
 
 // ── 8. Untracked warnings ─────────────────────────────────────────────────
@@ -178,4 +192,5 @@ console.log(JSON.stringify({
   hasUntracked: UNT_LIST.length > 0,
   untrackedCount: UNT_LIST.length,
   untrackedWarnings,
+  execLog,
 }, null, 2));

@@ -35,17 +35,29 @@ function exec(cmd, opts = {}) {
 
 function execSilent(cmd) { return exec(cmd, { silent: true }); }
 
+const execLog = [];
+function execTracked(label, cmd, opts = {}) {
+  try {
+    const result = exec(cmd, opts);
+    execLog.push({ step: label, ok: true });
+    return result;
+  } catch (e) {
+    execLog.push({ step: label, ok: false, err: e.message?.split('\n')[0] });
+    throw e;
+  }
+}
+
 const BRANCH = exec('git rev-parse --abbrev-ref HEAD');
 
 // ── 1. Stage & commit ─────────────────────────────────────────────────────
-exec('git add -A');
+execTracked('git add -A', 'git add -A');
 
 if (execSilent('git diff --cached --quiet')) {
   console.log(JSON.stringify({ error: 'nothing to commit after git add', branch: BRANCH }));
   process.exit(0);
 }
 
-exec(`git commit -m "${COMMIT_MSG.replace(/"/g, '\\"')}"`);
+execTracked('git commit', `git commit -m "${COMMIT_MSG.replace(/"/g, '\\"')}"`);
 const COMMIT_HASH = exec('git rev-parse HEAD');
 
 // Parse diff stat for counts
@@ -53,6 +65,7 @@ const DIFF_STAT = execSilent('git diff --stat HEAD~1..HEAD');
 const filesChanged = parseInt((DIFF_STAT.match(/(\d+) file/) || [])[1] || '1', 10);
 const insertions = parseInt((DIFF_STAT.match(/(\d+) insertion/) || [])[1] || '0', 10);
 const deletions = parseInt((DIFF_STAT.match(/(\d+) deletion/) || [])[1] || '0', 10);
+const changedFiles = execSilent('git diff --name-only HEAD~1..HEAD').split('\n').filter(Boolean);
 
 // ── 2. Fetch & push ───────────────────────────────────────────────────────
 let pushed = false;
@@ -68,9 +81,9 @@ try {
 
   if (behind > 0) {
     try {
-      exec(`git pull --rebase origin ${BRANCH}`);
+      execTracked('git pull --rebase', `git pull --rebase origin ${BRANCH}`);
       behindResolved = 'rebased';
-      exec(`git push origin ${BRANCH}`);
+      execTracked('git push', `git push origin ${BRANCH}`);
       pushed = true;
     } catch (e) {
       exec('git rebase --abort', { silent: true });
@@ -78,13 +91,13 @@ try {
       pushed = false;
     }
   } else {
-    exec(`git push -u origin ${BRANCH}`);
+    execTracked('git push', `git push -u origin ${BRANCH}`);
     pushed = true;
     behindResolved = 'synced';
   }
 } catch {
   // First push
-  exec(`git push -u origin ${BRANCH}`);
+  execTracked('git push', `git push -u origin ${BRANCH}`);
   pushed = true;
   behindResolved = 'first-push';
 }
@@ -96,6 +109,8 @@ console.log(JSON.stringify({
   filesChanged,
   insertions,
   deletions,
+  changedFiles,
   behindResolved,
   pushed,
+  execLog,
 }, null, 2));
